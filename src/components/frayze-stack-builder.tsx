@@ -29,8 +29,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2Icon } from "lucide-react";
-import { Layers, Plus, Box, ArrowRightToLine, ChevronRight, CreditCard, UserIcon, Check, Rocket } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { getStoredResponse } from "@/lib/callback-storage";
 
 export default function FrayzeStackBuilder() {
@@ -281,16 +280,12 @@ export default function FrayzeStackBuilder() {
         console.log('Found exact match response for formId:', formId);
         setAiResponse(result.aiResponse);
       } else {
-        console.log('No exact response found. Now checking with fallbacks enabled');
-        
-        // If still no result, allow fallbacks as a last resort
-        const fallbackResult = getStoredResponse(formId, true);  // true = use fallbacks
-        if (fallbackResult && fallbackResult.aiResponse) {
-          console.log('Found fallback response');
-          setAiResponse(fallbackResult.aiResponse);
-        } else {
-          console.log('No response found even with fallbacks enabled');
-        }
+        // If no exact match is found, keep aiResponse as null.
+        // The modal will show the loading state or "Check for Action Plan" button.
+        console.log('No exact response found in API or localStorage yet.');
+        // We intentionally do NOT set aiResponse here to allow the loading UI to persist.
+        // The user can click "Check for Action Plan" again later.
+        // DO NOT call getStoredResponse(formId, true) here.
       }
     } catch (error) {
       console.error('Error checking for callback results:', error);
@@ -574,7 +569,7 @@ export default function FrayzeStackBuilder() {
                 
                 {isLoadingActionPlan ? (
                   <div className="flex items-center justify-center">
-                    <Loader2Icon className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+                    <LucideIcons.Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
                     <span>Loading...</span>
                   </div>
                 ) : (

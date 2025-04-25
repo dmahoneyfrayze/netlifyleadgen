@@ -21,6 +21,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { storeResponse, getStoredResponse, prepareHtmlForReact } from "@/lib/callback-storage";
+import { 
+  CheckIcon, 
+  EnvelopeIcon, 
+  PhoneIcon, 
+  UserIcon, 
+  BuildingOfficeIcon 
+} from "@heroicons/react/24/outline";
 
 interface ContactFormProps {
   totalPrice: number;
@@ -226,34 +233,48 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
         });
         
         try {
-          // Check for results
-          const result = await checkForCallbackResults(formId);
+          // First try the API directly
+          try {
+            console.log('Checking server API directly...');
+            const callbackResponse = await fetch(`/.netlify/functions/webhook-callback?formId=${formId}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              }
+            });
+            
+            if (callbackResponse.ok) {
+              const responseData = await callbackResponse.json();
+              
+              // If we have an AI response, save it and stop polling
+              if (responseData && responseData.aiResponse) {
+                console.log('Received real API response from server');
+                clearInterval(pollingInterval!);
+                setWaitingForCallback(false);
+                
+                // Process the HTML for React
+                const processedHtml = prepareHtmlForReact(responseData.aiResponse);
+                setAiResponse(processedHtml);
+                
+                // Store the response for future retrieval
+                storeResponse(formId, processedHtml, 'callback');
+                return;
+              }
+            }
+          } catch (apiError) {
+            console.error('API polling error:', apiError);
+          }
+          
+          // Only check localStorage if API call didn't return a result
+          // First try without fallbacks
+          const result = getStoredResponse(formId, false);
           
           // If we have results, stop polling and update UI
           if (result && result.aiResponse) {
-            console.log('Received AI response from callback');
+            console.log('Found stored response for formId:', formId);
             clearInterval(pollingInterval!);
             setWaitingForCallback(false);
-            
-            // The HTML should already be processed for React in the serverless function
-            // but do one more check just to be safe
-            const processedHtml = typeof result.aiResponse === 'string' 
-              ? result.aiResponse.replace(/class=/g, 'className=')
-              : result.aiResponse;
-              
-            setAiResponse(processedHtml);
-            
-            // Save to localStorage as backup using both key formats for consistency
-            const responseObj = {
-              aiResponse: processedHtml,
-              formId: formId,
-              timestamp: new Date().toISOString()
-            };
-            localStorage.setItem(`callback_${formId}`, JSON.stringify(responseObj));
-            localStorage.setItem(`webhook_response_${formId}`, JSON.stringify(responseObj));
-            
-            // Also log that we're storing this for the "Get Action Plan" button to find
-            console.log('Stored AI response for formId:', formId, 'for later retrieval');
+            setAiResponse(result.aiResponse);
           }
           
           // If we've polled too many times, stop (to prevent infinite polling)
@@ -283,11 +304,8 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
               `;
               setAiResponse(fallbackHtml);
               
-              // Save fallback to localStorage for future reference
-              localStorage.setItem(`callback_${formId}`, JSON.stringify({
-                aiResponse: fallbackHtml,
-                isFallback: true
-              }));
+              // Store fallback for retrieval
+              storeResponse(formId, fallbackHtml, 'fallback');
             }
           }
         } catch (error) {
@@ -390,76 +408,64 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
     try {
       console.log('Manually loading action plan for formId:', formId);
       
-      // Emergency fallback: Try parsing the direct JSON response if available
-      // This would be for cases where we have the JSON from the API response but it wasn't saved properly
+      // First try the API directly - prioritize real data
       try {
-        // This is the direct JSON data the user showed us in their message
-        const hardcodedResponse = `{
-          "success": true,
-          "message": "Callback received successfully",
-          "formId": "form_1745610169370_tte66lt",
-          "aiResponse": "<div className=\\"p-6 bg-white rounded-lg shadow-md\\">\\n  <h2 className=\\"text-2xl font-bold mb-4\\">Next Steps with Your Local Starter System</h2>\\n  <p className=\\"mb-4\\">\\n    Thank you for selecting the <strong>Local Starter System</strong>, ideal for your business, <strong>Need A Car</strong>. Here's a summary of your choice:\\n  </p>\\n  <ul className=\\"list-disc list-inside mb-4\\">\\n    <li>Branded Funnel</li>\\n    <li>CRM Integration</li>\\n    <li>Email/SMS Sequences</li>\\n    <li>Monthly Reporting</li>\\n  </ul>\\n  <h3 className=\\"text-xl font-semibold mb-2\\">Key Benefits:</h3>\\n  <ul className=\\"list-disc list-inside mb-4\\">\\n    <li>Enhance customer reach with automated email/SMS marketing.</li>\\n    <li>Streamline operations with an integrated CRM system.</li>\\n    <li>Monthly reporting to track and optimize performance.</li>\\n  </ul>\\n  <h3 className=\\"text-xl font-semibold mb-2\\">Projected Action Plan:</h3>\\n  <ul className=\\"list-disc list-inside mb-4\\">\\n    <li>Setup branded funnel for <a href=\\"https://needacar.ca\\" className=\\"text-blue-500 underline\\">needacar.ca</a>.</li>\\n    <li>Integrate CRM for improved customer management.</li>\\n    <li>Launch initial email/SMS campaigns within 2 weeks.</li>\\n    <li>Review first month data, tweak strategies if needed.</li>\\n  </ul>\\n  <p className=\\"mb-4\\">\\n    To get started, please schedule a kickoff call at your convenience by clicking <a href=\\"https://calendar.notion.so/meet/denis-mahoney/introduction\\" className=\\"text-blue-500 underline\\">here</a>.\\n  </p>\\n</div>",
-          "timestamp": "2025-04-25T19:43:06.261Z"
-        }`;
+        console.log('Checking server API directly...');
+        const callbackResponse = await fetch(`/.netlify/functions/webhook-callback?formId=${formId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
         
-        // Check if current formId matches the hardcoded one
-        if (formId === "form_1745610169370_tte66lt" || localStorage.getItem('formId_latest') === "form_1745610169370_tte66lt") {
-          console.log('Using hardcoded response data as fallback');
-          const parsed = JSON.parse(hardcodedResponse);
-          setAiResponse(parsed.aiResponse);
-          setShowActionPlanModal(true);
+        if (callbackResponse.ok) {
+          const responseData = await callbackResponse.json();
           
-          // Save it to localStorage for future use
-          localStorage.setItem(`webhook_response_${formId}`, hardcodedResponse);
-          localStorage.setItem(`callback_${formId}`, JSON.stringify({
-            aiResponse: parsed.aiResponse
-          }));
-          
-          setIsLoadingActionPlan(false);
-          return;
-        }
-      } catch (parseError) {
-        console.error('Error using hardcoded response:', parseError);
-      }
-      
-      // First attempt: Check if we already have the result in the POST response
-      // This should handle the case where the server returned the aiResponse immediately
-      // and the webhook POST was successful (as seen in the user's example)
-      // Use the JSON directly if available
-      const webhookResponse = localStorage.getItem(`webhook_response_${formId}`);
-      if (webhookResponse) {
-        try {
-          const parsedResponse = JSON.parse(webhookResponse);
-          if (parsedResponse && parsedResponse.aiResponse) {
-            console.log('Using AI response from initial webhook response');
-            setAiResponse(parsedResponse.aiResponse);
+          // If we have an AI response, use it
+          if (responseData && responseData.aiResponse) {
+            console.log('Received real AI response from server API');
+            
+            // Process the HTML for React
+            const processedHtml = prepareHtmlForReact(responseData.aiResponse);
+            setAiResponse(processedHtml);
+            
+            // Store the response for future retrieval
+            storeResponse(formId, processedHtml, 'callback');
+            
+            // Show the modal with the response
             setShowActionPlanModal(true);
             setIsLoadingActionPlan(false);
             return;
           }
-        } catch (e) {
-          console.error('Error parsing webhook response from localStorage:', e);
         }
+      } catch (apiError) {
+        console.error('Error checking server API:', apiError);
       }
       
-      // Second attempt: Check for callback results using our existing function
-      const result = await checkForCallbackResults(formId);
-      
-      if (result && result.aiResponse) {
-        console.log('Received AI response from manual load');
-        // Process the HTML to ensure it's compatible with React
-        const processedHtml = result.aiResponse.replace(/class=/g, 'className=');
-        setAiResponse(processedHtml);
-        // Open the modal after loading the action plan
+      // Check without fallbacks first (only look for direct match in localStorage)
+      const directResult = getStoredResponse(formId, false);
+      if (directResult && directResult.aiResponse) {
+        console.log('Found direct match in localStorage');
+        setAiResponse(directResult.aiResponse);
         setShowActionPlanModal(true);
-      } else {
-        // Third attempt: Parse from the user-provided JSON directly
-        console.log('Attempting to parse aiResponse directly from POST response');
-        
-        // If we got this far with no result but we know the POST succeeded, 
-        // possibly manually parse the JSON from the webhook POST response
-        setActionPlanError("No action plan found. Our team may still be working on your custom plan.");
+        setIsLoadingActionPlan(false);
+        return;
       }
+      
+      // If nothing found, try with fallbacks enabled
+      console.log('No direct match found, trying with fallbacks enabled');
+      const fallbackResult = getStoredResponse(formId, true);
+      if (fallbackResult && fallbackResult.aiResponse) {
+        console.log('Found response with fallbacks');
+        setAiResponse(fallbackResult.aiResponse);
+        setShowActionPlanModal(true);
+        setIsLoadingActionPlan(false);
+        return;
+      }
+      
+      // If we get here, we couldn't find a response through any method
+      setActionPlanError("No action plan found. Our team may still be working on your custom plan.");
+      
     } catch (error) {
       console.error("Error loading action plan:", error);
       setActionPlanError("Failed to load action plan. Please try again later.");
