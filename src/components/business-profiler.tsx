@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Building2, Users, Target, Zap, HelpCircle, Sparkles, Bolt } from "lucide-react";
+import { ArrowRight, Building2, Users, Target, HelpCircle, Sparkles, Bolt } from "lucide-react";
 import { motion } from "framer-motion";
 import { coreSystems } from "@/data/addons";
 import { formatPricing } from "@/lib/format-utils";

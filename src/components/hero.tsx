@@ -87,12 +87,8 @@ interface HeroProps {
 }
 
 export function Hero({ onStartBuilding }: HeroProps) {
-  // Function to scroll to the addons section
-  const scrollToAddons = () => {
-    const addonsElement = document.querySelector('#addons');
-    if (addonsElement) {
-      addonsElement.scrollIntoView({ behavior: 'smooth' });
-    }
+  const handleStartBuilding = () => {
+    onStartBuilding();
   };
   
   return (
@@ -131,7 +127,7 @@ export function Hero({ onStartBuilding }: HeroProps) {
               <HoverCard key={category.name}>
                 <HoverCardTrigger asChild>
                   <button 
-                    onClick={onStartBuilding}
+                    onClick={handleStartBuilding}
                     className="flex flex-col items-center p-4 rounded-lg bg-card border hover:border-primary/60 hover:shadow-md hover:bg-primary/5 transition-all duration-300 w-full"
                   >
                     <category.icon className={`w-8 h-8 mb-2 ${category.color}`} />
@@ -162,14 +158,14 @@ export function Hero({ onStartBuilding }: HeroProps) {
             <Button
               size="lg"
               className="bg-gradient-to-r from-[#0066FF] to-[#00F6A3] hover:from-[#0052CC] hover:to-[#00E69D] text-white shadow-lg hover:shadow-xl transition-all duration-300 mb-6 px-8"
-              onClick={onStartBuilding}
+              onClick={handleStartBuilding}
             >
               Start Building Your Stack
             </Button>
             
             <div className="mb-6 flex items-center justify-center gap-2 text-sm">
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-primary hover:bg-blue-100 transition-colors cursor-pointer"
-                onClick={onStartBuilding}
+                onClick={handleStartBuilding}
               >
                 <Bot className="w-4 h-4" />
                 <span>Need help? Tell us your goal and we'll build a quote for you</span>

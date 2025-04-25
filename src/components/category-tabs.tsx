@@ -1,7 +1,5 @@
-import { useState } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Bot, Globe, Target, Lock, Zap, BarChart3 } from "lucide-react";
 import { type Category } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +20,6 @@ export function CategoryTabs({
   setActiveCategory,
   setActiveSubcategory
 }: CategoryTabsProps) {
-  const [showSubcategories, setShowSubcategories] = useState(true);
   const getSubcategoryColor = (category: string) => {
     switch (category) {
       case "ai":

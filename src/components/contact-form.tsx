@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Building2, Calendar, Clock, DollarSign, Check, Zap, Send, AlertCircle } from "lucide-react";
+import { ArrowRight, Building2, Calendar, Clock, DollarSign, Check, Zap, AlertCircle } from "lucide-react";
 import { type Addon } from "@/types";
 import { formatCurrency } from "@/lib/format-utils";
 import { submitFormToWebhook } from "@/lib/api";
@@ -12,13 +12,12 @@ import { generateQuotePDF } from "@/lib/pdf-utils";
 
 interface ContactFormProps {
   totalPrice: number;
-  currentStep: number;
   selected: Addon[];
   onSubmit: (data: any) => void;
   onBack: () => void;
 }
 
-export function ContactForm({ totalPrice, currentStep, selected, onSubmit, onBack }: ContactFormProps) {
+export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactFormProps) {
   const [formData, setFormData] = useState({
     businessName: "",
     contactName: "",

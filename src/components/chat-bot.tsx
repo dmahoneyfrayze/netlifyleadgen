@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Bot, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface ChatBotProps {
   onHelpMeChoose: () => void;

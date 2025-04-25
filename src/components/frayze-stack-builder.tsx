@@ -9,7 +9,6 @@ import {
   SparklesIcon, 
   XMarkIcon 
 } from "@heroicons/react/24/outline";
-import { DynamicIcon } from "lucide-react/dynamic";
 import { AddonGrid } from "@/components/addon-grid";
 import { AddonSummary } from "@/components/addon-summary";
 import { AddonSearch } from "@/components/addon-search";
@@ -32,7 +31,6 @@ export default function FrayzeStackBuilder() {
   const [activeSubcategory, setActiveSubcategory] = useState("");
   const [selectedCore, setSelectedCore] = useState<Addon | null>(null);
   const [showContactForm, setShowContactForm] = useState(false);
-  const [showProfiler, setShowProfiler] = useState(false);
   const [showHero, setShowHero] = useState(true);
   const [formData, setFormData] = useState<any>(null);
   const [businessProfile, setBusinessProfile] = useState<{
@@ -294,10 +292,11 @@ export default function FrayzeStackBuilder() {
                       setActiveSubcategory={setActiveSubcategory}
                     />
                     
-                    <AddonGrid 
+                    <AddonGrid
                       addons={filteredAddons}
                       selected={selected}
-                      toggleAddon={toggleAddon}
+                      onToggle={toggleAddon}
+                      selectedCore={selectedCore}
                     />
                     
                     {filteredAddons.length === 0 && (
@@ -432,7 +431,6 @@ export default function FrayzeStackBuilder() {
           <div className="container mx-auto px-4">
             <ContactForm
               totalPrice={totalPrice}
-              currentStep={currentStep}
               selected={selected}
               onSubmit={handleContactSubmit}
               onBack={() => setShowContactForm(false)}
@@ -446,7 +444,6 @@ export default function FrayzeStackBuilder() {
       <ChatBot 
         onHelpMeChoose={() => {
           setShowHero(false);
-          setShowProfiler(true);
         }}
       />
     </div>

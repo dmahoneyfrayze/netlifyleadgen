@@ -1,32 +1,15 @@
 import { motion } from "framer-motion";
 import { type Addon } from "@/types";
 import { AddonCard } from "@/components/addon-card";
-import { Bot, Globe, Target, Lock, Zap, BarChart3 } from "lucide-react";
-
-const getCategoryIcon = (category: string) => {
-  switch (category) {
-    case "ai":
-      return Bot;
-    case "seo":
-      return Globe;
-    case "marketing":
-      return Target;
-    case "client":
-      return Lock;
-    case "systems":
-      return Zap;
-    default:
-      return BarChart3;
-  }
-};
 
 interface AddonGridProps {
   addons: Addon[];
   selected: Addon[];
-  toggleAddon: (addon: Addon) => void;
+  onToggle: (addon: Addon) => void;
+  selectedCore: Addon | null;
 }
 
-export function AddonGrid({ addons, selected, toggleAddon }: AddonGridProps) {
+export function AddonGrid({ addons, selected, onToggle, selectedCore }: AddonGridProps) {
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -46,9 +29,6 @@ export function AddonGrid({ addons, selected, toggleAddon }: AddonGridProps) {
     }
   };
 
-  // Find the core system if one is selected
-  const selectedCore = selected.find(addon => addon.category === "core");
-  
   // Check if an addon is included in the core system
   const isIncludedInCore = (addonId: string) => {
     return selectedCore?.includes?.includes(addonId) || false;
@@ -76,7 +56,7 @@ export function AddonGrid({ addons, selected, toggleAddon }: AddonGridProps) {
           <AddonCard
             addon={addon}
             isSelected={selected.some(a => a.id === addon.id)}
-            onToggle={() => toggleAddon(addon)}
+            onToggle={() => onToggle(addon)}
             isIncludedInCore={isIncludedInCore(addon.id)}
           />
         </motion.div>

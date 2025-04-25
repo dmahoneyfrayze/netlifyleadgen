@@ -1,21 +1,17 @@
-import path from 'path';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig, loadEnv } from 'vite';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
-export default defineConfig(({ mode }) => {
-  // Load env file based on `mode` in the current directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
-  const env = loadEnv(mode, process.cwd(), '');
-  
-  return {
-    plugins: [react()],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, './src'),
-      },
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src'),
     },
-    optimizeDeps: {
-      exclude: ['lucide-react'],
-    },
-  };
+  },
+  optimizeDeps: {
+    exclude: ['lucide-react'],
+  },
 });
