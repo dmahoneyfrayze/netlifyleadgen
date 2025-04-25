@@ -16,6 +16,23 @@ const getSiteUrl = (event) => {
   return `${protocol}://${host}`;
 };
 
+// Format HTML to be compatible with React's JSX requirements
+const prepareHtmlForReact = (html) => {
+  // If HTML isn't provided, return an empty string
+  if (!html) return '';
+  
+  try {
+    // Replace class with className for React compatibility
+    let processed = html.replace(/class=/g, 'className=');
+    // Ensure self-closing tags have proper JSX format
+    processed = processed.replace(/<(img|br|hr|input)([^>]*)>/g, '<$1$2/>');
+    return processed;
+  } catch (error) {
+    console.error('Error formatting HTML for React:', error);
+    return html; // Return original if processing fails
+  }
+};
+
 exports.handler = async function(event, context) {
   // Handle OPTIONS request for CORS preflight
   if (event.httpMethod === "OPTIONS") {
@@ -56,6 +73,14 @@ exports.handler = async function(event, context) {
       payload.callbackUrl = fullCallbackUrl;
     }
     
+    // Log the payload being sent (excluding sensitive data)
+    console.log('Forwarding payload with data structure:', {
+      hasFormData: !!payload.formData,
+      selectedAddons: payload.selectedAddons?.length || 0,
+      totalPrice: payload.totalPrice,
+      hasCallbackUrl: !!payload.callbackUrl
+    });
+    
     // Forward the request to the actual webhook
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
@@ -72,23 +97,29 @@ exports.handler = async function(event, context) {
     // Check if the response is JSON
     if (contentType && contentType.includes('application/json')) {
       responseData = await response.json();
+      console.log('Received JSON response from webhook');
     } else {
       // If not JSON, just get text
       const textData = await response.text();
+      console.log('Received text response from webhook, length:', textData.length);
       try {
         // Try to parse as JSON anyway (sometimes content-type is wrong)
         responseData = JSON.parse(textData);
+        console.log('Successfully parsed text response as JSON');
       } catch (e) {
         // If parsing fails, just use the text
+        console.log('Response is not JSON, treating as plain text');
         responseData = { text: textData };
       }
     }
 
-    // For demonstration purposes, if n8n doesn't provide an AI response,
-    // we'll use the sample HTML snippet provided
-    if (!responseData.aiResponse) {
-      // In a real implementation, you wouldn't do this here - the callback would handle this
-      console.log('No AI response in initial response. Using callback for AI response.');
+    // Check for AI response in the data
+    if (responseData.aiResponse) {
+      console.log('AI response found in webhook response, length:', responseData.aiResponse.length);
+      // Process HTML to be React-compatible
+      responseData.aiResponse = prepareHtmlForReact(responseData.aiResponse);
+    } else {
+      console.log('No AI response found in webhook response');
     }
 
     // Return the webhook's response with AI-generated content included

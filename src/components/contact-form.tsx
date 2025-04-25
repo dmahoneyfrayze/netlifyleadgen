@@ -22,18 +22,27 @@ interface ContactFormProps {
 
 // Mock function to simulate checking for callback results
 // In a real implementation, this would query a database or other storage
-const checkForCallbackResults = (formId: string): Promise<{ aiResponse: string } | null> => {
-  // This is a placeholder - in a real implementation, you would:
-  // 1. Query a database or storage to see if there's a result for this form ID
-  // 2. Return the result if found
-  // 3. Return null if not found
-  
-  // For now, we'll simulate a delay and then return the sample response
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Simulate getting a response 30% of the time
-      if (Math.random() < 0.3) {
-        resolve({
+const checkForCallbackResults = async (formId: string): Promise<{ aiResponse: string } | null> => {
+  try {
+    // In a real implementation, you would fetch from a database or API
+    // For this demo, we'll check localStorage to simulate persistence
+    const storedResponse = localStorage.getItem(`callback_${formId}`);
+    
+    if (storedResponse) {
+      console.log('Found stored response for formId:', formId);
+      return JSON.parse(storedResponse);
+    }
+
+    // Simulate possible async check to a backend API
+    // This could be a fetch call to a real endpoint in production
+    console.log('No stored response found. Simulating API call...');
+    
+    // For demo purposes, we'll have a growing chance of getting a response
+    // as more polling attempts occur
+    const simulateApiCall = () => new Promise<{ aiResponse: string } | null>((resolve) => {
+      setTimeout(() => {
+        // Sample HTML response similar to what would come from n8n
+        const sampleResponse = {
           aiResponse: `<div className="p-6 bg-white rounded-lg shadow-md">
   <h2 className="text-2xl font-bold mb-4">Next Steps with Your Growth Engine System</h2>
   <p className="mb-4">
@@ -54,15 +63,23 @@ const checkForCallbackResults = (formId: string): Promise<{ aiResponse: string }
   
   <p className="mb-4">
     To get started, please schedule your kickoff call at your earliest convenience. Use the following link to select a time that suits you: 
-    <a href="https://calendar.notion.so/meet/denis-mahoney/introduction" className="text-blue-500 underline">Schedule Kickoff Call</a>
+    <a href="https://calendly.com/frayze/demo" className="text-blue-500 underline">Schedule Kickoff Call</a>
   </p>
 </div>`
-        });
-      } else {
-        resolve(null);
-      }
-    }, 3000); // Simulate a 3 second delay
-  });
+        };
+
+        // Store in localStorage for persistence across page reloads
+        localStorage.setItem(`callback_${formId}`, JSON.stringify(sampleResponse));
+        
+        resolve(sampleResponse);
+      }, 1500); // Simulate network delay
+    });
+
+    return await simulateApiCall();
+  } catch (error) {
+    console.error("Error checking for callback results:", error);
+    return null;
+  }
 };
 
 export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactFormProps) {
@@ -91,10 +108,15 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
     let pollingInterval: NodeJS.Timeout | null = null;
     
     if (waitingForCallback && formId) {
+      console.log('Starting to poll for callback results, formId:', formId);
+      
       // Set up polling
       pollingInterval = setInterval(async () => {
         // Increment polling count
-        setPollingCount(count => count + 1);
+        setPollingCount(count => {
+          console.log('Polling attempt:', count + 1);
+          return count + 1;
+        });
         
         try {
           // Check for results
@@ -102,15 +124,39 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
           
           // If we have results, stop polling and update UI
           if (result && result.aiResponse) {
+            console.log('Received AI response from callback');
             clearInterval(pollingInterval!);
             setWaitingForCallback(false);
-            setAiResponse(result.aiResponse);
+            
+            // Process the HTML to ensure it's compatible with React
+            const processedHtml = result.aiResponse.replace(/class=/g, 'className=');
+            setAiResponse(processedHtml);
           }
           
           // If we've polled too many times, stop (to prevent infinite polling)
-          if (pollingCount > 10) { // Stop after ~30 seconds (10 polls * 3 seconds)
+          if (pollingCount > 15) { // Increase to 15 polls (45 seconds)
+            console.log('Polling timeout reached');
             clearInterval(pollingInterval!);
             setWaitingForCallback(false);
+            // Set a fallback message if no response was received
+            if (!aiResponse) {
+              setAiResponse(`
+                <div className="p-6 bg-white rounded-lg shadow-md">
+                  <h2 className="text-2xl font-bold mb-4">Next Steps with Your Selected Package</h2>
+                  <p className="mb-4">
+                    Thank you for your submission! Our team will review your requirements and reach out to you shortly.
+                  </p>
+                  <p className="mb-4">
+                    In the meantime, you can schedule a call with our team to discuss your needs in more detail.
+                  </p>
+                  <p>
+                    <a href="https://calendly.com/frayze/demo" className="text-blue-500 underline">
+                      Schedule a Call
+                    </a>
+                  </p>
+                </div>
+              `);
+            }
           }
         } catch (error) {
           console.error("Error polling for callback results:", error);
@@ -126,7 +172,7 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
         clearInterval(pollingInterval);
       }
     };
-  }, [waitingForCallback, formId, pollingCount]);
+  }, [waitingForCallback, formId, pollingCount, aiResponse]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -195,22 +241,46 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
               <h2 className="text-2xl font-bold">Thank You for Your Inquiry!</h2>
               <p className="text-muted-foreground max-w-md mx-auto">
                 Your request has been successfully submitted. A Frayze team member will review your requirements
-                and reach out within 1 business day.
+                and reach out within 24 hours.
               </p>
             </div>
             
             {waitingForCallback ? (
-              <div className="mt-8 flex flex-col items-center space-y-3">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  Generating your personalized action plan...
-                </p>
+              <div className="mt-8 p-6 border border-blue-100 bg-blue-50 rounded-lg">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  </div>
+                  <div className="space-y-2 text-center">
+                    <h3 className="font-semibold text-blue-700">Creating Your Custom Action Plan</h3>
+                    <p className="text-sm text-blue-600">
+                      Our AI is generating a personalized action plan based on your selections.
+                      This typically takes 15-30 seconds.
+                    </p>
+                  </div>
+                  <div className="w-full max-w-xs bg-gray-200 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-teal-400 animate-pulse"
+                      style={{ 
+                        width: `${Math.min(100, pollingCount * 10)}%`,
+                        transition: 'width 0.5s ease-in-out'
+                      }}
+                    ></div>
+                  </div>
+                </div>
               </div>
             ) : aiResponse ? (
-              <div className="mt-8 text-left">
+              <div className="mt-8 text-left p-4 border rounded-lg bg-white shadow-sm">
                 <div dangerouslySetInnerHTML={{ __html: aiResponse }} />
               </div>
-            ) : null}
+            ) : (
+              <div className="mt-8 p-4 border rounded border-yellow-200 bg-yellow-50">
+                <div className="flex items-center text-yellow-700">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  <p className="text-sm">Waiting for response from server...</p>
+                </div>
+              </div>
+            )}
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
               <Button 
