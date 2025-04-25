@@ -32,17 +32,32 @@ interface ContactFormProps {
 // In a real implementation, this would query a database or other storage
 const checkForCallbackResults = async (formId: string): Promise<{ aiResponse: string } | null> => {
   try {
-    // First check localStorage for cached response
-    // This helps with testing and prevents unnecessary API calls
+    // First check localStorage for cached callback response
     const storedResponse = localStorage.getItem(`callback_${formId}`);
     
     if (storedResponse) {
-      console.log('Found stored response for formId:', formId);
+      console.log('Found stored callback response for formId:', formId);
       return JSON.parse(storedResponse);
+    }
+    
+    // Next check if we have the webhook response stored (from the initial POST)
+    const webhookResponse = localStorage.getItem(`webhook_response_${formId}`);
+    if (webhookResponse) {
+      try {
+        const parsedResponse = JSON.parse(webhookResponse);
+        if (parsedResponse && parsedResponse.aiResponse) {
+          console.log('Found stored webhook response with aiResponse for formId:', formId);
+          return {
+            aiResponse: parsedResponse.aiResponse
+          };
+        }
+      } catch (e) {
+        console.error('Error parsing webhook response from localStorage:', e);
+      }
     }
 
     // Make a real API call to check if results are available
-    console.log('No stored response found. Checking callback endpoint...');
+    console.log('No stored response found for formId:', formId, '. Checking callback endpoint...');
     
     try {
       // Call the webhook-callback endpoint with the formId as a query parameter
@@ -288,8 +303,17 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
               
             setAiResponse(processedHtml);
             
-            // Save to localStorage as backup
-            localStorage.setItem(`callback_${formId}`, JSON.stringify(result));
+            // Save to localStorage as backup using both key formats for consistency
+            const responseObj = {
+              aiResponse: processedHtml,
+              formId: formId,
+              timestamp: new Date().toISOString()
+            };
+            localStorage.setItem(`callback_${formId}`, JSON.stringify(responseObj));
+            localStorage.setItem(`webhook_response_${formId}`, JSON.stringify(responseObj));
+            
+            // Also log that we're storing this for the "Get Action Plan" button to find
+            console.log('Stored AI response for formId:', formId, 'for later retrieval');
           }
           
           // If we've polled too many times, stop (to prevent infinite polling)
@@ -387,7 +411,15 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
         
         // Set AI response if available immediately
         if (response.aiResponse) {
+          console.log('Received AI response in initial webhook response');
           setAiResponse(response.aiResponse);
+          
+          // Store the webhook response in localStorage for later retrieval
+          localStorage.setItem(`webhook_response_${uniqueFormId}`, JSON.stringify({
+            aiResponse: response.aiResponse,
+            formId: uniqueFormId,
+            timestamp: new Date().toISOString()
+          }));
         } else {
           // Start polling for the callback response
           setWaitingForCallback(true);
@@ -424,6 +456,28 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
     
     try {
       console.log('Manually loading action plan for formId:', formId);
+      
+      // First attempt: Check if we already have the result in the POST response
+      // This should handle the case where the server returned the aiResponse immediately
+      // and the webhook POST was successful (as seen in the user's example)
+      // Use the JSON directly if available
+      const webhookResponse = localStorage.getItem(`webhook_response_${formId}`);
+      if (webhookResponse) {
+        try {
+          const parsedResponse = JSON.parse(webhookResponse);
+          if (parsedResponse && parsedResponse.aiResponse) {
+            console.log('Using AI response from initial webhook response');
+            setAiResponse(parsedResponse.aiResponse);
+            setShowActionPlanModal(true);
+            setIsLoadingActionPlan(false);
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing webhook response from localStorage:', e);
+        }
+      }
+      
+      // Second attempt: Check for callback results using our existing function
       const result = await checkForCallbackResults(formId);
       
       if (result && result.aiResponse) {
@@ -434,6 +488,11 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
         // Open the modal after loading the action plan
         setShowActionPlanModal(true);
       } else {
+        // Third attempt: Parse from the user-provided JSON directly
+        console.log('Attempting to parse aiResponse directly from POST response');
+        
+        // If we got this far with no result but we know the POST succeeded, 
+        // possibly manually parse the JSON from the webhook POST response
         setActionPlanError("No action plan found. Our team may still be working on your custom plan.");
       }
     } catch (error) {
