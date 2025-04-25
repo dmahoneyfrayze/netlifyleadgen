@@ -20,6 +20,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { storeResponse, getStoredResponse, prepareHtmlForReact } from "@/lib/callback-storage";
 
 interface ContactFormProps {
   totalPrice: number;
@@ -28,68 +29,17 @@ interface ContactFormProps {
   onBack: () => void;
 }
 
-// Mock function to simulate checking for callback results
-// In a real implementation, this would query a database or other storage
+// Function to check for callback results from n8n
 const checkForCallbackResults = async (formId: string): Promise<{ aiResponse: string } | null> => {
   try {
     console.log(`Attempting to find response for formId: ${formId}`);
     
-    // Log all localStorage keys to help with debugging
-    const allKeys = [];
-    for(let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if(key) allKeys.push(key);
-    }
-    console.log('All available localStorage keys:', allKeys);
-    
-    // First check localStorage for cached callback response
-    const storedResponse = localStorage.getItem(`callback_${formId}`);
-    
-    if (storedResponse) {
-      console.log('Found stored callback response for formId:', formId);
-      return JSON.parse(storedResponse);
+    // Use our enhanced storage utility to get the response with fallbacks
+    const result = getStoredResponse(formId);
+    if (result) {
+      return result;
     }
     
-    // Next check if we have the webhook response stored (from the initial POST)
-    const webhookResponse = localStorage.getItem(`webhook_response_${formId}`);
-    if (webhookResponse) {
-      try {
-        const parsedResponse = JSON.parse(webhookResponse);
-        if (parsedResponse && parsedResponse.aiResponse) {
-          console.log('Found stored webhook response with aiResponse for formId:', formId);
-          return {
-            aiResponse: parsedResponse.aiResponse
-          };
-        }
-      } catch (e) {
-        console.error('Error parsing webhook response from localStorage:', e);
-      }
-    }
-
-    // Check for the most recent formId in case the current one is not found
-    const latestFormId = localStorage.getItem('formId_latest');
-    if (latestFormId && latestFormId !== formId) {
-      console.log(`Current formId ${formId} not found, checking latest formId: ${latestFormId}`);
-      
-      // Check webhook response for the latest formId
-      const latestWebhookResponse = localStorage.getItem(`webhook_response_${latestFormId}`);
-      if (latestWebhookResponse) {
-        try {
-          const parsedResponse = JSON.parse(latestWebhookResponse);
-          if (parsedResponse && parsedResponse.aiResponse) {
-            console.log(`Found response for latest formId: ${latestFormId}`);
-            // Store this for the current formId as well for future reference
-            localStorage.setItem(`webhook_response_${formId}`, latestWebhookResponse);
-            return {
-              aiResponse: parsedResponse.aiResponse
-            };
-          }
-        } catch (e) {
-          console.error('Error parsing latest webhook response:', e);
-        }
-      }
-    }
-
     // Make a real API call to check if results are available
     console.log('No stored response found for formId:', formId, '. Checking callback endpoint...');
     
@@ -109,10 +59,8 @@ const checkForCallbackResults = async (formId: string): Promise<{ aiResponse: st
         if (responseData && responseData.aiResponse) {
           console.log('Received real AI response from server');
           
-          // Store in localStorage for persistence across page reloads
-          localStorage.setItem(`callback_${formId}`, JSON.stringify({
-            aiResponse: responseData.aiResponse
-          }));
+          // Store using our utility
+          storeResponse(formId, responseData.aiResponse, 'callback');
           
           return {
             aiResponse: responseData.aiResponse
@@ -121,52 +69,10 @@ const checkForCallbackResults = async (formId: string): Promise<{ aiResponse: st
       }
     } catch (apiError) {
       console.error('Error checking callback endpoint:', apiError);
-      // Continue to fallback behavior if API call fails
     }
     
-    // If no results from server or API call failed, fall back to simulation for demo purposes
-    // This can be removed in production
-    console.log('No response from server. For demo, simulating API call...');
-    
-    // For demo purposes, we'll have a growing chance of getting a response
-    // as more polling attempts occur
-    const simulateApiCall = () => new Promise<{ aiResponse: string } | null>((resolve) => {
-      setTimeout(() => {
-        // Sample HTML response similar to what would come from n8n
-        const sampleResponse = {
-          aiResponse: `<div className="p-6 bg-white rounded-lg shadow-md">
-  <h2 className="text-2xl font-bold mb-4">Next Steps with Your Growth Engine System</h2>
-  <p className="mb-4">
-    Thank you for choosing the <strong>Growth Engine System</strong>. Here's a summary of what you've selected:
-  </p>
-  <ul className="list-disc ml-6 mb-4">
-    <li>
-      Growth Engine System: For businesses ready to scale with automation, AI, and advertising. Includes a multi-step funnel, AI responder, call tracking, lead scoring, and content.
-    </li>
-  </ul>
-  
-  <h3 className="text-lg font-semibold mb-2">Key Benefits</h3>
-  <ul className="list-disc ml-6 mb-4">
-    <li>Automate and scale your business operations with cutting-edge AI tools.</li>
-    <li>Track your leads effectively and improve your marketing strategies.</li>
-    <li>Leverage customized content for better audience engagement.</li>
-  </ul>
-  
-  <p className="mb-4">
-    To get started, please schedule your kickoff call at your earliest convenience. Use the following link to select a time that suits you: 
-    <a href="https://calendly.com/frayze/demo" className="text-blue-500 underline">Schedule Kickoff Call</a>
-  </p>
-</div>`
-        };
-
-        // Store in localStorage for persistence across page reloads
-        localStorage.setItem(`callback_${formId}`, JSON.stringify(sampleResponse));
-        
-        resolve(sampleResponse);
-      }, 1500); // Simulate network delay
-    });
-
-    return await simulateApiCall();
+    // If we get here, we couldn't find a response through any method
+    return null;
   } catch (error) {
     console.error("Error checking for callback results:", error);
     return null;
@@ -448,19 +354,12 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
           console.log('Received AI response in initial webhook response');
           setAiResponse(response.aiResponse);
           
-          // Store the webhook response in localStorage for later retrieval
-          localStorage.setItem(`webhook_response_${uniqueFormId}`, JSON.stringify({
-            aiResponse: response.aiResponse,
-            formId: uniqueFormId,
-            timestamp: new Date().toISOString()
-          }));
+          // Store the response using our utility
+          storeResponse(uniqueFormId, response.aiResponse, 'webhook');
         } else {
           // Start polling for the callback response
           setWaitingForCallback(true);
         }
-        
-        // Save form ID to local storage to help with testing
-        localStorage.setItem(`formId_latest`, uniqueFormId);
         
         // Pass form data to parent component with formId and any immediate aiResponse
         onSubmit(formData, { 

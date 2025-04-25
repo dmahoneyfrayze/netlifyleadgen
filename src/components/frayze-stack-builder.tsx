@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2Icon } from "lucide-react";
 import { Layers, Plus, Box, ArrowRightToLine, ChevronRight, CreditCard, UserIcon, Check, Rocket } from 'lucide-react';
+import { getStoredResponse } from "@/lib/callback-storage";
 
 export default function FrayzeStackBuilder() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -248,21 +249,34 @@ export default function FrayzeStackBuilder() {
     setIsLoadingActionPlan(true);
     
     try {
-      // In a real implementation, this would call an API endpoint
-      // For this demo, we'll check localStorage where the contact form component stores responses
-      const storedResponse = localStorage.getItem(`callback_${formId}`);
+      // Use our enhanced localStorage utility to get the response
+      const result = getStoredResponse(formId);
       
-      if (storedResponse) {
-        const parsedResponse = JSON.parse(storedResponse);
-        console.log('Found stored response for formId:', formId);
-        
-        if (parsedResponse.aiResponse) {
-          // Process the HTML to ensure it's compatible with React
-          const processedHtml = parsedResponse.aiResponse.replace(/class=/g, 'className=');
-          setAiResponse(processedHtml);
-        }
+      if (result && result.aiResponse) {
+        console.log('Found response for formId:', formId);
+        setAiResponse(result.aiResponse);
       } else {
-        console.log('No stored response found for formId:', formId);
+        console.log('No response found for formId:', formId);
+        
+        // Try to fetch from the server as a fallback
+        try {
+          const response = await fetch(`/.netlify/functions/webhook-callback?formId=${formId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.aiResponse) {
+              console.log('Retrieved response from server API');
+              setAiResponse(data.aiResponse);
+            }
+          }
+        } catch (apiError) {
+          console.error('Error fetching from API:', apiError);
+        }
       }
     } catch (error) {
       console.error('Error checking for callback results:', error);
