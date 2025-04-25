@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { 
@@ -52,6 +52,51 @@ export default function FrayzeStackBuilder() {
   const [isLoadingActionPlan, setIsLoadingActionPlan] = useState(false);
   const [formId, setFormId] = useState<string | null>(null);
   
+  // --- Start: Polling Logic for Action Plan Modal ---
+  useEffect(() => {
+    let pollingInterval: NodeJS.Timeout | null = null;
+    let pollingAttempts = 0;
+    const MAX_POLLING_ATTEMPTS = 15; // Poll for ~45 seconds (15 * 3s)
+
+    const pollForResponse = async () => {
+      pollingAttempts++;
+      console.log(`Modal polling attempt ${pollingAttempts} for formId: ${formId}`);
+
+      await checkForCallbackResults(); // This will try API then localStorage
+
+      // Check if aiResponse was set by checkForCallbackResults
+      // Need to check localStorage directly as state update might be async
+      const currentResponse = getStoredResponse(formId!, false);
+      if (currentResponse?.aiResponse) {
+        console.log('Modal polling found response, stopping.');
+        setAiResponse(currentResponse.aiResponse); // Ensure state is updated
+        if (pollingInterval) clearInterval(pollingInterval);
+      } else if (pollingAttempts >= MAX_POLLING_ATTEMPTS) {
+        console.log('Modal polling timed out.');
+        if (pollingInterval) clearInterval(pollingInterval);
+        // Optional: Set an error message or fallback content here if needed
+        // setAiResponse("Could not retrieve action plan after timeout.");
+      }
+    };
+
+    if (showActionPlanModal && formId && !aiResponse) {
+      console.log('Starting modal polling for action plan...');
+      // Initial check immediately
+      pollForResponse(); 
+      // Set interval for subsequent checks
+      pollingInterval = setInterval(pollForResponse, 3000); // Poll every 3 seconds
+    }
+
+    // Cleanup function
+    return () => {
+      if (pollingInterval) {
+        console.log('Clearing modal polling interval.');
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [showActionPlanModal, formId, aiResponse]); // Rerun effect if modal opens, formId changes, or aiResponse is set
+  // --- End: Polling Logic for Action Plan Modal ---
+
   const totalPrice = selected.reduce((sum, addon) => {
     // If this is a core system, only count its price
     if (addon.category === "core") {
