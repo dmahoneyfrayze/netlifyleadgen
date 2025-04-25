@@ -1,4 +1,4 @@
-import { WEBHOOK_URL } from './environment';
+import { WEBHOOK_URL, getProxiedWebhookUrl } from './environment';
 import { type Addon } from '@/types';
 
 interface FormData {
@@ -24,16 +24,23 @@ export interface WebhookPayload {
  */
 export const submitFormToWebhook = async (payload: WebhookPayload): Promise<boolean> => {
   try {
-    const response = await fetch(WEBHOOK_URL, {
+    // Use the potentially proxied URL to avoid CORS issues
+    const webhookUrl = getProxiedWebhookUrl();
+    console.log('Submitting to webhook URL:', webhookUrl);
+    
+    const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      // No need for no-cors mode when using the Netlify function as a proxy
       body: JSON.stringify(payload),
     });
 
+    // Check if the response is OK
     if (!response.ok) {
-      throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+      console.error(`Server responded with ${response.status}: ${await response.text()}`);
+      return false;
     }
 
     return true;

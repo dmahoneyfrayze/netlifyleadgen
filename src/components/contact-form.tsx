@@ -64,11 +64,11 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
         // Pass form data to parent component
         onSubmit(formData);
       } else {
-        setSubmitError("Failed to submit form. Please try again later.");
+        setSubmitError("Failed to submit form. Please try again or contact support directly.");
       }
     } catch (error) {
       console.error("Form submission error:", error);
-      setSubmitError("An unexpected error occurred. Please try again later.");
+      setSubmitError("An unexpected error occurred. Please try again or contact support at support@frayze.ca");
     } finally {
       setIsSubmitting(false);
     }
