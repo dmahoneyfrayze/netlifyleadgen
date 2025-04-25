@@ -1,10 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Building2, Calendar, Clock, DollarSign, Check, Zap, AlertCircle } from "lucide-react";
+import { 
+  ArrowRight, Building2, Calendar, Clock, DollarSign, 
+  Check, Zap, AlertCircle, Loader2
+} from "lucide-react";
 import { type Addon } from "@/types";
 import { formatCurrency } from "@/lib/format-utils";
 import { submitFormToWebhook } from "@/lib/api";
@@ -16,6 +19,51 @@ interface ContactFormProps {
   onSubmit: (data: any) => void;
   onBack: () => void;
 }
+
+// Mock function to simulate checking for callback results
+// In a real implementation, this would query a database or other storage
+const checkForCallbackResults = (formId: string): Promise<{ aiResponse: string } | null> => {
+  // This is a placeholder - in a real implementation, you would:
+  // 1. Query a database or storage to see if there's a result for this form ID
+  // 2. Return the result if found
+  // 3. Return null if not found
+  
+  // For now, we'll simulate a delay and then return the sample response
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // Simulate getting a response 30% of the time
+      if (Math.random() < 0.3) {
+        resolve({
+          aiResponse: `<div className="p-6 bg-white rounded-lg shadow-md">
+  <h2 className="text-2xl font-bold mb-4">Next Steps with Your Growth Engine System</h2>
+  <p className="mb-4">
+    Thank you for choosing the <strong>Growth Engine System</strong>. Here's a summary of what you've selected:
+  </p>
+  <ul className="list-disc ml-6 mb-4">
+    <li>
+      Growth Engine System: For businesses ready to scale with automation, AI, and advertising. Includes a multi-step funnel, AI responder, call tracking, lead scoring, and content.
+    </li>
+  </ul>
+  
+  <h3 className="text-lg font-semibold mb-2">Key Benefits</h3>
+  <ul className="list-disc ml-6 mb-4">
+    <li>Automate and scale your business operations with cutting-edge AI tools.</li>
+    <li>Track your leads effectively and improve your marketing strategies.</li>
+    <li>Leverage customized content for better audience engagement.</li>
+  </ul>
+  
+  <p className="mb-4">
+    To get started, please schedule your kickoff call at your earliest convenience. Use the following link to select a time that suits you: 
+    <a href="https://calendar.notion.so/meet/denis-mahoney/introduction" className="text-blue-500 underline">Schedule Kickoff Call</a>
+  </p>
+</div>`
+        });
+      } else {
+        resolve(null);
+      }
+    }, 3000); // Simulate a 3 second delay
+  });
+};
 
 export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactFormProps) {
   const [formData, setFormData] = useState({
@@ -33,6 +81,52 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [formId, setFormId] = useState<string | null>(null);
+  const [waitingForCallback, setWaitingForCallback] = useState(false);
+  const [pollingCount, setPollingCount] = useState(0);
+
+  // Effect for polling for callback results
+  useEffect(() => {
+    let pollingInterval: NodeJS.Timeout | null = null;
+    
+    if (waitingForCallback && formId) {
+      // Set up polling
+      pollingInterval = setInterval(async () => {
+        // Increment polling count
+        setPollingCount(count => count + 1);
+        
+        try {
+          // Check for results
+          const result = await checkForCallbackResults(formId);
+          
+          // If we have results, stop polling and update UI
+          if (result && result.aiResponse) {
+            clearInterval(pollingInterval!);
+            setWaitingForCallback(false);
+            setAiResponse(result.aiResponse);
+          }
+          
+          // If we've polled too many times, stop (to prevent infinite polling)
+          if (pollingCount > 10) { // Stop after ~30 seconds (10 polls * 3 seconds)
+            clearInterval(pollingInterval!);
+            setWaitingForCallback(false);
+          }
+        } catch (error) {
+          console.error("Error polling for callback results:", error);
+          clearInterval(pollingInterval!);
+          setWaitingForCallback(false);
+        }
+      }, 3000); // Poll every 3 seconds
+    }
+    
+    // Cleanup
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [waitingForCallback, formId, pollingCount]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -48,19 +142,33 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
     setSubmitError(null);
     
     try {
+      // Generate a unique form ID for tracking this submission
+      const uniqueFormId = `form_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      setFormId(uniqueFormId);
+      
       // Generate PDF with form data
       generateQuotePDF(selected, totalPrice, formData);
       
       // Submit to webhook
-      const success = await submitFormToWebhook({
+      const response = await submitFormToWebhook({
         formData,
         selectedAddons: selected,
-        totalPrice
+        totalPrice,
+        callbackUrl: uniqueFormId // Pass the form ID as part of the callback context
       });
       
-      if (success) {
+      if (response.success) {
         // Show success message
         setShowSuccess(true);
+        
+        // Set AI response if available immediately
+        if (response.aiResponse) {
+          setAiResponse(response.aiResponse);
+        } else {
+          // Start polling for the callback response
+          setWaitingForCallback(true);
+        }
+        
         // Pass form data to parent component
         onSubmit(formData);
       } else {
@@ -90,6 +198,19 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
                 and reach out within 1 business day.
               </p>
             </div>
+            
+            {waitingForCallback ? (
+              <div className="mt-8 flex flex-col items-center space-y-3">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Generating your personalized action plan...
+                </p>
+              </div>
+            ) : aiResponse ? (
+              <div className="mt-8 text-left">
+                <div dangerouslySetInnerHTML={{ __html: aiResponse }} />
+              </div>
+            ) : null}
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
               <Button 
