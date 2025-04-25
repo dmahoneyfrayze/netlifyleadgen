@@ -22,6 +22,13 @@ import { addonCategories, addons, getRecommendedAddons, coreSystems } from "@/da
 import { type Addon } from "@/types";
 import { Card } from "@/components/ui/card";
 import { generateQuotePDF } from "@/lib/pdf-utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function FrayzeStackBuilder() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -38,6 +45,9 @@ export default function FrayzeStackBuilder() {
     teamSize: string;
     mainGoal: string;
   } | null>(null);
+  const [showActionPlanModal, setShowActionPlanModal] = useState(false);
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [isLoadingActionPlan, setIsLoadingActionPlan] = useState(false);
   
   const totalPrice = selected.reduce((sum, addon) => {
     // If this is a core system, only count its price
@@ -362,8 +372,20 @@ export default function FrayzeStackBuilder() {
                         }
                       }}
                     >
-                      <DocumentTextIcon className="w-5 h-5" />
+                      <DocumentTextIcon className="w-5 h-5 mr-2" />
                       Download Estimate PDF
+                    </Button>
+                  </div>
+                  
+                  <div className="mb-8">
+                    <Button
+                      variant="default"
+                      size="lg"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => setShowActionPlanModal(true)}
+                    >
+                      <SparklesIcon className="w-5 h-5 mr-2" />
+                      View Your Custom AI Action Plan
                     </Button>
                   </div>
                   
@@ -446,6 +468,75 @@ export default function FrayzeStackBuilder() {
           setShowHero(false);
         }}
       />
+      
+      {/* Action Plan Modal */}
+      <Dialog open={showActionPlanModal} onOpenChange={setShowActionPlanModal}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Your Custom Action Plan</DialogTitle>
+          </DialogHeader>
+          
+          <div className="max-h-[70vh] overflow-y-auto my-4">
+            {aiResponse ? (
+              <div dangerouslySetInnerHTML={{ __html: aiResponse }} />
+            ) : (
+              <div className="p-8 text-center">
+                <SparklesIcon className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-xl font-medium mb-2">Your action plan is being created</h3>
+                <p className="text-muted-foreground mb-6">
+                  Our AI is analyzing your requirements to create a personalized action plan for your business.
+                </p>
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={isLoadingActionPlan}
+                  onClick={() => {
+                    setIsLoadingActionPlan(true);
+                    // Simulate loading the action plan
+                    setTimeout(() => {
+                      const sampleResponse = `<div className="p-6 bg-white rounded-lg shadow-md">
+                        <h2 className="text-2xl font-bold mb-4">Next Steps with Your Growth Engine System</h2>
+                        <p className="mb-4">
+                          Thank you for choosing the <strong>Growth Engine System</strong>. Here's a summary of what you've selected:
+                        </p>
+                        <ul className="list-disc ml-6 mb-4">
+                          <li>
+                            Growth Engine System: For businesses ready to scale with automation, AI, and advertising. Includes a multi-step funnel, AI responder, call tracking, lead scoring, and content.
+                          </li>
+                        </ul>
+                        
+                        <h3 className="text-lg font-semibold mb-2">Key Benefits</h3>
+                        <ul className="list-disc ml-6 mb-4">
+                          <li>Automate and scale your business operations with cutting-edge AI tools.</li>
+                          <li>Track your leads effectively and improve your marketing strategies.</li>
+                          <li>Leverage customized content for better audience engagement.</li>
+                        </ul>
+                        
+                        <p className="mb-4">
+                          To get started, please schedule your kickoff call at your earliest convenience. Use the following link to select a time that suits you: 
+                          <a href="https://calendly.com/frayze/demo" className="text-blue-500 underline">Schedule Kickoff Call</a>
+                        </p>
+                      </div>`;
+                      setAiResponse(sampleResponse);
+                      setIsLoadingActionPlan(false);
+                    }, 1500);
+                  }}
+                >
+                  {isLoadingActionPlan ? 'Loading...' : 'Generate Action Plan'}
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowActionPlanModal(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
