@@ -5,8 +5,10 @@ const fetch = require('node-fetch');
 
 // Get the webhook URL from environment variables
 // This will be set in the Netlify dashboard
-// If not set, fall back to the hardcoded URL
-const WEBHOOK_URL = process.env.VITE_WEBHOOK_URL || "https://n8n.frayze.ca/webhook-test/d685ac24-5d07-43af-8311-bac8fbfe651d";
+const WEBHOOK_URL = process.env.VITE_WEBHOOK_URL;
+if (!WEBHOOK_URL) {
+  console.error('VITE_WEBHOOK_URL environment variable is not set');
+}
 
 // Get the current site URL
 const getSiteUrl = (event) => {
@@ -42,6 +44,22 @@ exports.handler = async function(event, context) {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
+      }
+    };
+  }
+  
+  // Check if webhook URL is configured
+  if (!WEBHOOK_URL) {
+    console.error('Webhook URL not configured. Set VITE_WEBHOOK_URL environment variable.');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ 
+        success: false,
+        message: "Server configuration error: Webhook URL not set"
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
       }
     };
   }
