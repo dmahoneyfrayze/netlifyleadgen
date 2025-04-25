@@ -18,6 +18,7 @@ export interface WebhookPayload {
   selectedAddons: Addon[];
   totalPrice: number;
   callbackUrl?: string; // Optional callback URL for n8n to send the AI response
+  formId?: string; // Unique ID to track this specific form submission
 }
 
 export interface WebhookResponse {
@@ -48,7 +49,7 @@ export const submitFormToWebhook = async (payload: WebhookPayload): Promise<Webh
     // Add the callback URL to the payload
     const enhancedPayload = {
       ...payload,
-      callbackUrl: `${getSiteUrl()}/.netlify/functions/webhook-callback`
+      callbackUrl: `${getSiteUrl()}/.netlify/functions/webhook-callback?formId=${payload.formId || ''}`
     };
     
     const response = await fetch(webhookUrl, {

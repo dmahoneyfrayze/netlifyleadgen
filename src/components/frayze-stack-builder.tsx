@@ -29,6 +29,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
 
 export default function FrayzeStackBuilder() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -48,6 +49,7 @@ export default function FrayzeStackBuilder() {
   const [showActionPlanModal, setShowActionPlanModal] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [isLoadingActionPlan, setIsLoadingActionPlan] = useState(false);
+  const [formId, setFormId] = useState<string | null>(null);
   
   const totalPrice = selected.reduce((sum, addon) => {
     // If this is a core system, only count its price
@@ -91,7 +93,7 @@ export default function FrayzeStackBuilder() {
     }
   };
   
-  const handleContactSubmit = useCallback((data: any) => {
+  const handleContactSubmit = useCallback((data: any, responseData?: { aiResponse?: string, formId?: string }) => {
     // Log submission data for debugging
     console.log('Quote Request Submitted:', {
       selectedAddons: selected,
@@ -101,6 +103,16 @@ export default function FrayzeStackBuilder() {
     
     // Store form data
     setFormData(data);
+    
+    // Store AI response if available
+    if (responseData?.aiResponse) {
+      setAiResponse(responseData.aiResponse);
+    }
+    
+    // Store form ID for callback reference
+    if (responseData?.formId) {
+      setFormId(responseData.formId);
+    }
     
     // Close contact form and move to success step
     setShowContactForm(false);
@@ -224,6 +236,39 @@ export default function FrayzeStackBuilder() {
 
     return false;
   });
+  
+  // Function to check for callback results from n8n
+  const checkForCallbackResults = async () => {
+    if (!formId) {
+      console.warn('No form ID available to check for callback results');
+      return;
+    }
+    
+    setIsLoadingActionPlan(true);
+    
+    try {
+      // In a real implementation, this would call an API endpoint
+      // For this demo, we'll check localStorage where the contact form component stores responses
+      const storedResponse = localStorage.getItem(`callback_${formId}`);
+      
+      if (storedResponse) {
+        const parsedResponse = JSON.parse(storedResponse);
+        console.log('Found stored response for formId:', formId);
+        
+        if (parsedResponse.aiResponse) {
+          // Process the HTML to ensure it's compatible with React
+          const processedHtml = parsedResponse.aiResponse.replace(/class=/g, 'className=');
+          setAiResponse(processedHtml);
+        }
+      } else {
+        console.log('No stored response found for formId:', formId);
+      }
+    } catch (error) {
+      console.error('Error checking for callback results:', error);
+    } finally {
+      setIsLoadingActionPlan(false);
+    }
+  };
   
   return (
     <div className="relative w-full bg-gradient-to-b from-background to-background/90">
@@ -382,7 +427,13 @@ export default function FrayzeStackBuilder() {
                       variant="default"
                       size="lg"
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={() => setShowActionPlanModal(true)}
+                      onClick={() => {
+                        if (!aiResponse) {
+                          // If we don't have the AI response yet, check for it
+                          checkForCallbackResults();
+                        }
+                        setShowActionPlanModal(true);
+                      }}
                     >
                       <SparklesIcon className="w-5 h-5 mr-2" />
                       View Your Custom AI Action Plan
@@ -482,58 +533,64 @@ export default function FrayzeStackBuilder() {
             ) : (
               <div className="p-8 text-center">
                 <SparklesIcon className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-                <h3 className="text-xl font-medium mb-2">Your action plan is being created</h3>
+                <h3 className="text-xl font-medium mb-2">Your action plan is being prepared</h3>
                 <p className="text-muted-foreground mb-6">
-                  Our AI is analyzing your requirements to create a personalized action plan for your business.
+                  {isLoadingActionPlan 
+                    ? "Loading your action plan..."
+                    : "We're waiting to receive your custom action plan from our AI system."}
                 </p>
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={isLoadingActionPlan}
-                  onClick={() => {
-                    setIsLoadingActionPlan(true);
-                    // Simulate loading the action plan
-                    setTimeout(() => {
-                      const sampleResponse = `<div className="p-6 bg-white rounded-lg shadow-md">
-                        <h2 className="text-2xl font-bold mb-4">Next Steps with Your Growth Engine System</h2>
-                        <p className="mb-4">
-                          Thank you for choosing the <strong>Growth Engine System</strong>. Here's a summary of what you've selected:
-                        </p>
-                        <ul className="list-disc ml-6 mb-4">
-                          <li>
-                            Growth Engine System: For businesses ready to scale with automation, AI, and advertising. Includes a multi-step funnel, AI responder, call tracking, lead scoring, and content.
-                          </li>
-                        </ul>
-                        
-                        <h3 className="text-lg font-semibold mb-2">Key Benefits</h3>
-                        <ul className="list-disc ml-6 mb-4">
-                          <li>Automate and scale your business operations with cutting-edge AI tools.</li>
-                          <li>Track your leads effectively and improve your marketing strategies.</li>
-                          <li>Leverage customized content for better audience engagement.</li>
-                        </ul>
-                        
-                        <p className="mb-4">
-                          To get started, please schedule your kickoff call at your earliest convenience. Use the following link to select a time that suits you: 
-                          <a href="https://calendly.com/frayze/demo" className="text-blue-500 underline">Schedule Kickoff Call</a>
-                        </p>
-                      </div>`;
-                      setAiResponse(sampleResponse);
-                      setIsLoadingActionPlan(false);
-                    }, 1500);
-                  }}
-                >
-                  {isLoadingActionPlan ? 'Loading...' : 'Generate Action Plan'}
-                </Button>
+                
+                {isLoadingActionPlan ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+                    <span>Loading...</span>
+                  </div>
+                ) : (
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={checkForCallbackResults}
+                  >
+                    Check for Action Plan
+                  </Button>
+                )}
               </div>
             )}
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 justify-end">
             <Button 
               variant="outline" 
               onClick={() => setShowActionPlanModal(false)}
             >
               Close
             </Button>
+            
+            {aiResponse && (
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+                  try {
+                    // This implementation uses inline script to download as HTML
+                    // In production, you'd use jsPDF for proper PDF formatting
+                    const blob = new Blob([aiResponse], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `frayze-action-plan-${Date.now()}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  } catch (error) {
+                    console.error('Error downloading action plan:', error);
+                    alert('There was an error downloading your action plan. Please try again or contact support.');
+                  }
+                }}
+              >
+                <DocumentTextIcon className="w-5 h-5 mr-2" />
+                Download Action Plan
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

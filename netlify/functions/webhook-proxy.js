@@ -64,11 +64,17 @@ exports.handler = async function(event, context) {
     // Parse the incoming request body
     const payload = JSON.parse(event.body);
     
+    // Extract formId early to ensure we always have it available
+    const formId = payload.formId || '';
+    console.log('Request formId:', formId);
+    
     // Ensure the callbackUrl is an absolute URL
     if (payload.callbackUrl && !payload.callbackUrl.startsWith('http')) {
       const siteUrl = getSiteUrl(event);
-      // Create the full callback URL
-      const fullCallbackUrl = `${siteUrl}/.netlify/functions/webhook-callback`;
+      
+      // Create the full callback URL with the formId
+      const callbackPath = payload.callbackUrl || '/.netlify/functions/webhook-callback';
+      const fullCallbackUrl = `${siteUrl}${callbackPath}${callbackPath.includes('?') ? '&' : '?'}formId=${formId}`;
       console.log('Using callback URL:', fullCallbackUrl);
       payload.callbackUrl = fullCallbackUrl;
     }
@@ -78,7 +84,8 @@ exports.handler = async function(event, context) {
       hasFormData: !!payload.formData,
       selectedAddons: payload.selectedAddons?.length || 0,
       totalPrice: payload.totalPrice,
-      hasCallbackUrl: !!payload.callbackUrl
+      hasCallbackUrl: !!payload.callbackUrl,
+      formId: formId
     });
     
     // Forward the request to the actual webhook
@@ -121,6 +128,14 @@ exports.handler = async function(event, context) {
     } else {
       console.log('No AI response found in webhook response');
     }
+    
+    // Always include the formId in the response
+    responseData.formId = formId;
+    
+    // Store the response in localStorage for later retrieval
+    // This happens on the server side, so we need to save it somewhere
+    // For a real system, you'd use a database or other persistent storage
+    // For now, we rely on the frontend to store this in localStorage
 
     // Return the webhook's response with AI-generated content included
     return {
@@ -134,12 +149,22 @@ exports.handler = async function(event, context) {
   } catch (error) {
     console.error("Webhook proxy error:", error);
     
+    // Get formId from payload if possible
+    let formId = '';
+    try {
+      const payload = JSON.parse(event.body);
+      formId = payload.formId || '';
+    } catch (e) {
+      console.error("Could not extract formId from error payload", e);
+    }
+    
     return {
       statusCode: 500,
       body: JSON.stringify({ 
         success: false,
         message: "Internal Server Error",
-        error: error.message
+        error: error.message,
+        formId: formId // Include formId even in error responses
       }),
       headers: {
         "Content-Type": "application/json",

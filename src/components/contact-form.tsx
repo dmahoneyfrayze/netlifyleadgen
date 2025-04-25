@@ -24,7 +24,7 @@ import {
 interface ContactFormProps {
   totalPrice: number;
   selected: Addon[];
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any, responseData?: { formId?: string, aiResponse?: string }) => void;
   onBack: () => void;
 }
 
@@ -32,8 +32,8 @@ interface ContactFormProps {
 // In a real implementation, this would query a database or other storage
 const checkForCallbackResults = async (formId: string): Promise<{ aiResponse: string } | null> => {
   try {
-    // In a real implementation, you would fetch from a database or API
-    // For this demo, we'll check localStorage to simulate persistence
+    // First check localStorage for cached response
+    // This helps with testing and prevents unnecessary API calls
     const storedResponse = localStorage.getItem(`callback_${formId}`);
     
     if (storedResponse) {
@@ -41,9 +41,43 @@ const checkForCallbackResults = async (formId: string): Promise<{ aiResponse: st
       return JSON.parse(storedResponse);
     }
 
-    // Simulate possible async check to a backend API
-    // This could be a fetch call to a real endpoint in production
-    console.log('No stored response found. Simulating API call...');
+    // Make a real API call to check if results are available
+    console.log('No stored response found. Checking callback endpoint...');
+    
+    try {
+      // Call the webhook-callback endpoint with the formId as a query parameter
+      const callbackResponse = await fetch(`/.netlify/functions/webhook-callback?formId=${formId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (callbackResponse.ok) {
+        const responseData = await callbackResponse.json();
+        
+        // If we have an AI response, save it to localStorage and return it
+        if (responseData && responseData.aiResponse) {
+          console.log('Received real AI response from server');
+          
+          // Store in localStorage for persistence across page reloads
+          localStorage.setItem(`callback_${formId}`, JSON.stringify({
+            aiResponse: responseData.aiResponse
+          }));
+          
+          return {
+            aiResponse: responseData.aiResponse
+          };
+        }
+      }
+    } catch (apiError) {
+      console.error('Error checking callback endpoint:', apiError);
+      // Continue to fallback behavior if API call fails
+    }
+    
+    // If no results from server or API call failed, fall back to simulation for demo purposes
+    // This can be removed in production
+    console.log('No response from server. For demo, simulating API call...');
     
     // For demo purposes, we'll have a growing chance of getting a response
     // as more polling attempts occur
@@ -230,9 +264,10 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
       // Set up polling
       pollingInterval = setInterval(async () => {
         // Increment polling count
-        setPollingCount(count => {
-          console.log('Polling attempt:', count + 1);
-          return count + 1;
+        setPollingCount(prev => {
+          const newCount = prev + 1;
+          console.log(`Polling attempt ${newCount} for formId: ${formId}`);
+          return newCount;
         });
         
         try {
@@ -245,19 +280,28 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
             clearInterval(pollingInterval!);
             setWaitingForCallback(false);
             
-            // Process the HTML to ensure it's compatible with React
-            const processedHtml = result.aiResponse.replace(/class=/g, 'className=');
+            // The HTML should already be processed for React in the serverless function
+            // but do one more check just to be safe
+            const processedHtml = typeof result.aiResponse === 'string' 
+              ? result.aiResponse.replace(/class=/g, 'className=')
+              : result.aiResponse;
+              
             setAiResponse(processedHtml);
+            
+            // Save to localStorage as backup
+            localStorage.setItem(`callback_${formId}`, JSON.stringify(result));
           }
           
           // If we've polled too many times, stop (to prevent infinite polling)
-          if (pollingCount > 15) { // Increase to 15 polls (45 seconds)
-            console.log('Polling timeout reached');
+          if (pollingCount >= 15) { // Increase to 15 polls (45 seconds)
+            console.log('Polling timeout reached after 15 attempts');
             clearInterval(pollingInterval!);
             setWaitingForCallback(false);
+            
             // Set a fallback message if no response was received
             if (!aiResponse) {
-              setAiResponse(`
+              console.log('Setting fallback message after timeout');
+              const fallbackHtml = `
                 <div className="p-6 bg-white rounded-lg shadow-md">
                   <h2 className="text-2xl font-bold mb-4">Next Steps with Your Selected Package</h2>
                   <p className="mb-4">
@@ -272,13 +316,30 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
                     </a>
                   </p>
                 </div>
-              `);
+              `;
+              setAiResponse(fallbackHtml);
+              
+              // Save fallback to localStorage for future reference
+              localStorage.setItem(`callback_${formId}`, JSON.stringify({
+                aiResponse: fallbackHtml,
+                isFallback: true
+              }));
             }
           }
         } catch (error) {
           console.error("Error polling for callback results:", error);
-          clearInterval(pollingInterval!);
-          setWaitingForCallback(false);
+          
+          // If we have too many errors, stop polling
+          if (pollingCount >= 10) {
+            console.log('Stopping polling due to errors');
+            clearInterval(pollingInterval!);
+            setWaitingForCallback(false);
+            
+            // Set error message in the UI
+            if (!aiResponse) {
+              setSubmitError("Unable to retrieve your action plan. Please try again later or contact support.");
+            }
+          }
         }
       }, 3000); // Poll every 3 seconds
     }
@@ -317,7 +378,7 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
         formData,
         selectedAddons: selected,
         totalPrice,
-        callbackUrl: uniqueFormId // Pass the form ID as part of the callback context
+        formId: uniqueFormId // Add the form ID directly to the payload
       });
       
       if (response.success) {
@@ -332,8 +393,14 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
           setWaitingForCallback(true);
         }
         
-        // Pass form data to parent component
-        onSubmit(formData);
+        // Save form ID to local storage to help with testing
+        localStorage.setItem(`formId_latest`, uniqueFormId);
+        
+        // Pass form data to parent component with formId and any immediate aiResponse
+        onSubmit(formData, { 
+          formId: uniqueFormId, 
+          aiResponse: response.aiResponse 
+        });
       } else {
         setSubmitError("Failed to submit form. Please try again or contact support directly.");
       }
