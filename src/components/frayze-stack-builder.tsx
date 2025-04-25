@@ -562,24 +562,14 @@ export default function FrayzeStackBuilder() {
                 <SparklesIcon className="w-12 h-12 text-blue-500 mx-auto mb-4" />
                 <h3 className="text-xl font-medium mb-2">Your action plan is being prepared</h3>
                 <p className="text-muted-foreground mb-6">
-                  {isLoadingActionPlan 
-                    ? "Loading your action plan..."
-                    : "We're waiting to receive your custom action plan from Frayzi."}
+                  We're waiting to receive your custom action plan from Frayzi.
+                  This can take up to 30 seconds.
                 </p>
                 
-                {isLoadingActionPlan ? (
-                  <div className="flex items-center justify-center">
-                    <LucideIcons.Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
-                    <span>Loading...</span>
-                  </div>
-                ) : (
-                  <Button 
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={checkForCallbackResults}
-                  >
-                    Check for Action Plan
-                  </Button>
-                )}
+                <div className="flex items-center justify-center">
+                  <LucideIcons.Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+                  <span>Loading... Please wait.</span>
+                </div>
               </div>
             )}
           </div>
