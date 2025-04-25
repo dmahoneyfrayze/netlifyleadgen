@@ -500,8 +500,8 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
                   <div className="space-y-2 text-center">
                     <h3 className="font-semibold text-blue-700">Creating Your Custom Action Plan</h3>
                     <p className="text-sm text-blue-600">
-                      Our AI is generating a personalized action plan based on your selections.
-                      This typically takes 15-30 seconds.
+                      Frayzi is generating a personalized action plan based on your selections.
+                      This usually takes 15-30 seconds while Frayzi works.
                     </p>
                   </div>
                   <div className="w-full max-w-xs bg-gray-200 h-2 rounded-full overflow-hidden">

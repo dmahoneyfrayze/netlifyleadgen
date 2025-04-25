@@ -460,7 +460,7 @@ export default function FrayzeStackBuilder() {
                       }}
                     >
                       <SparklesIcon className="w-5 h-5 mr-2" />
-                      View Your Custom AI Action Plan
+                      View Your Custom Frayze Action Plan
                     </Button>
                   </div>
                   
@@ -564,7 +564,7 @@ export default function FrayzeStackBuilder() {
                 <p className="text-muted-foreground mb-6">
                   {isLoadingActionPlan 
                     ? "Loading your action plan..."
-                    : "We're waiting to receive your custom action plan from our AI system."}
+                    : "We're waiting to receive your custom action plan from Frayzi."}
                 </p>
                 
                 {isLoadingActionPlan ? (
