@@ -249,33 +249,47 @@ export default function FrayzeStackBuilder() {
     setIsLoadingActionPlan(true);
     
     try {
-      // Use our enhanced localStorage utility to get the response
-      const result = getStoredResponse(formId);
+      console.log('Checking for real webhook data from server...');
+      
+      // First try to fetch from the server API directly
+      try {
+        const response = await fetch(`/.netlify/functions/webhook-callback?formId=${formId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.aiResponse) {
+            console.log('Retrieved real response from server API');
+            setAiResponse(data.aiResponse);
+            setIsLoadingActionPlan(false);
+            return;
+          }
+        }
+      } catch (apiError) {
+        console.error('Error fetching from API:', apiError);
+      }
+      
+      // If server API fails, check localStorage without fallbacks first
+      console.log('Server API check failed, trying localStorage for exact matches');
+      const result = getStoredResponse(formId, false);  // false = no fallbacks
       
       if (result && result.aiResponse) {
-        console.log('Found response for formId:', formId);
+        console.log('Found exact match response for formId:', formId);
         setAiResponse(result.aiResponse);
       } else {
-        console.log('No response found for formId:', formId);
+        console.log('No exact response found. Now checking with fallbacks enabled');
         
-        // Try to fetch from the server as a fallback
-        try {
-          const response = await fetch(`/.netlify/functions/webhook-callback?formId=${formId}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data && data.aiResponse) {
-              console.log('Retrieved response from server API');
-              setAiResponse(data.aiResponse);
-            }
-          }
-        } catch (apiError) {
-          console.error('Error fetching from API:', apiError);
+        // If still no result, allow fallbacks as a last resort
+        const fallbackResult = getStoredResponse(formId, true);  // true = use fallbacks
+        if (fallbackResult && fallbackResult.aiResponse) {
+          console.log('Found fallback response');
+          setAiResponse(fallbackResult.aiResponse);
+        } else {
+          console.log('No response found even with fallbacks enabled');
         }
       }
     } catch (error) {

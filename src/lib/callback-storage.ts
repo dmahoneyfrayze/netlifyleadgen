@@ -46,7 +46,7 @@ export function storeResponse(formId: string, aiResponse: string, source: 'webho
 }
 
 // Get response from localStorage with fallbacks
-export function getStoredResponse(formId: string): { aiResponse: string } | null {
+export function getStoredResponse(formId: string, useFallback: boolean = false): { aiResponse: string } | null {
   if (!formId) {
     console.warn('Cannot get stored response: Missing formId');
     return null;
@@ -96,6 +96,13 @@ export function getStoredResponse(formId: string): { aiResponse: string } | null
       } catch (e) {
         console.error('Error parsing webhook response:', e);
       }
+    }
+    
+    // If useFallback is false, stop here - only look for direct matches
+    // This prevents falling back to hardcoded examples during initial loading
+    if (!useFallback) {
+      console.log('No direct response found and fallbacks disabled');
+      return null;
     }
     
     // Strategy 4: Try latest formId
