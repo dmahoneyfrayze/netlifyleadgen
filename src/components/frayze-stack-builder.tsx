@@ -29,7 +29,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2Icon } from "lucide-react";
+import { Layers, Plus, Box, ArrowRightToLine, ChevronRight, CreditCard, UserIcon, Check, Rocket } from 'lucide-react';
 
 export default function FrayzeStackBuilder() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -522,9 +523,12 @@ export default function FrayzeStackBuilder() {
       
       {/* Action Plan Modal */}
       <Dialog open={showActionPlanModal} onOpenChange={setShowActionPlanModal}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl" aria-describedby="action-plan-description">
           <DialogHeader>
             <DialogTitle className="text-2xl">Your Custom Action Plan</DialogTitle>
+            <p id="action-plan-description" className="text-muted-foreground">
+              Review your personalized action plan based on your selections
+            </p>
           </DialogHeader>
           
           <div className="max-h-[70vh] overflow-y-auto my-4">
@@ -542,7 +546,7 @@ export default function FrayzeStackBuilder() {
                 
                 {isLoadingActionPlan ? (
                   <div className="flex items-center justify-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+                    <Loader2Icon className="w-6 h-6 animate-spin text-blue-600 mr-2" />
                     <span>Loading...</span>
                   </div>
                 ) : (

@@ -369,6 +369,133 @@ function createFallbackDb() {
   };
 }
 
+// Get all form submissions
+function getAllFormSubmissions() {
+  try {
+    if (isFallbackMode) {
+      // For fallback mode, return the array of all form submissions
+      const submissions = Array.from(memory.form_submissions.values());
+      console.log(`[Fallback DB] Retrieved all form submissions (${submissions.length} found)`);
+      return submissions;
+    }
+    
+    if (db.prepare) {
+      // better-sqlite3
+      const stmt = db.prepare('SELECT * FROM form_submissions ORDER BY created_at DESC');
+      const rows = stmt.all();
+      
+      // Parse the JSON data in each row
+      return rows.map(row => {
+        try {
+          if (typeof row.data === 'string') {
+            return {
+              ...row,
+              data: JSON.parse(row.data)
+            };
+          }
+          return row;
+        } catch (e) {
+          console.error('Error parsing form submission JSON:', e);
+          return row;
+        }
+      });
+    } else {
+      // sqlite3
+      return new Promise((resolve, reject) => {
+        db.all(
+          'SELECT * FROM form_submissions ORDER BY created_at DESC',
+          (err, rows) => {
+            if (err) {
+              console.error('Error getting all form submissions:', err);
+              reject(err);
+            } else {
+              // Parse the JSON data in each row
+              const results = rows.map(row => {
+                try {
+                  if (typeof row.data === 'string') {
+                    return {
+                      ...row,
+                      data: JSON.parse(row.data)
+                    };
+                  }
+                  return row;
+                } catch (e) {
+                  console.error('Error parsing form submission JSON:', e);
+                  return row;
+                }
+              });
+              
+              resolve(results);
+            }
+          }
+        );
+      });
+    }
+  } catch (err) {
+    console.error('Error getting all form submissions:', err);
+    return [];
+  }
+}
+
+// Get all AI responses
+function getAllAiResponses() {
+  try {
+    if (isFallbackMode) {
+      // For fallback mode, return the array of all AI responses
+      const responses = Array.from(memory.ai_responses.values());
+      console.log(`[Fallback DB] Retrieved all AI responses (${responses.length} found)`);
+      return responses;
+    }
+    
+    if (db.prepare) {
+      // better-sqlite3
+      // Limit the size of the response to prevent huge payloads
+      const stmt = db.prepare(`
+        SELECT 
+          id, form_id, created_at, response_type, 
+          substr(ai_response, 1, 500) as ai_response_preview,
+          length(ai_response) as response_length
+        FROM ai_responses 
+        ORDER BY created_at DESC
+      `);
+      
+      const rows = stmt.all();
+      return rows.map(row => ({
+        ...row,
+        ai_response_preview: row.ai_response_preview + (row.response_length > 500 ? '...(truncated)' : '')
+      }));
+    } else {
+      // sqlite3
+      return new Promise((resolve, reject) => {
+        db.all(
+          `SELECT 
+            id, form_id, created_at, response_type, 
+            substr(ai_response, 1, 500) as ai_response_preview,
+            length(ai_response) as response_length
+          FROM ai_responses 
+          ORDER BY created_at DESC`,
+          (err, rows) => {
+            if (err) {
+              console.error('Error getting all AI responses:', err);
+              reject(err);
+            } else {
+              const results = rows.map(row => ({
+                ...row,
+                ai_response_preview: row.ai_response_preview + (row.response_length > 500 ? '...(truncated)' : '')
+              }));
+              
+              resolve(results);
+            }
+          }
+        );
+      });
+    }
+  } catch (err) {
+    console.error('Error getting all AI responses:', err);
+    return [];
+  }
+}
+
 // Initialize the database
 initializeDb();
 
@@ -378,5 +505,7 @@ module.exports = {
   getAiResponse,
   getFormSubmission,
   getLatestFormSubmission,
+  getAllFormSubmissions,
+  getAllAiResponses,
   isFallbackMode
 }; 
