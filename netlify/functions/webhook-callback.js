@@ -1,9 +1,8 @@
 // Netlify serverless function to handle the callback from n8n
 // This receives the AI-generated content after n8n processes the form data
 
-// This would be a database in a real implementation
-// For demo purposes, we'll use an in-memory store
-const responseStore = {};
+// Import the database module
+const db = require('./db');
 
 exports.handler = async function(event, context) {
   // Handle CORS preflight requests
@@ -26,15 +25,79 @@ exports.handler = async function(event, context) {
   if (event.httpMethod === "GET") {
     console.log(`GET request for formId: ${formId}`);
     
-    // Check if we have a stored response for this formId
-    if (responseStore[formId]) {
-      console.log(`Found stored response for formId: ${formId}`);
+    try {
+      // Check if we have a stored response for this formId in the database
+      const storedResponse = await db.getAiResponse(formId);
+      
+      if (storedResponse) {
+        console.log(`Found stored response in database for formId: ${formId}`);
+        
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            success: true,
+            formId: formId,
+            aiResponse: storedResponse.ai_response,
+            timestamp: storedResponse.created_at
+          }),
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        };
+      }
+      
+      // If not found by exact formId, try to get the latest response
+      // This is useful for testing when formIds might change
+      const latestSubmission = await db.getLatestFormSubmission();
+      if (latestSubmission) {
+        console.log(`No response for formId: ${formId}, checking latest submission: ${latestSubmission.form_id}`);
+        
+        const latestResponse = await db.getAiResponse(latestSubmission.form_id);
+        if (latestResponse) {
+          console.log(`Found response for latest formId: ${latestSubmission.form_id}`);
+          
+          return {
+            statusCode: 200,
+            body: JSON.stringify({
+              success: true,
+              formId: latestSubmission.form_id,
+              originalFormId: formId,
+              aiResponse: latestResponse.ai_response,
+              timestamp: latestResponse.created_at,
+              note: "Using response from latest submission"
+            }),
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*"
+            }
+          };
+        }
+      }
+      
+      // No stored response yet
+      return {
+        statusCode: 404,
+        body: JSON.stringify({
+          success: false,
+          message: `No response available yet for formId: ${formId}`,
+          formId: formId
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      };
+    } catch (error) {
+      console.error(`Error retrieving AI response from database for formId: ${formId}:`, error);
       
       return {
-        statusCode: 200,
+        statusCode: 500,
         body: JSON.stringify({
-          success: true,
-          ...responseStore[formId]
+          success: false,
+          message: "Error retrieving AI response",
+          error: error.message,
+          formId: formId
         }),
         headers: {
           "Content-Type": "application/json",
@@ -42,20 +105,6 @@ exports.handler = async function(event, context) {
         }
       };
     }
-    
-    // No stored response yet
-    return {
-      statusCode: 404,
-      body: JSON.stringify({
-        success: false,
-        message: `No response available yet for formId: ${formId}`,
-        formId: formId
-      }),
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      }
-    };
   }
   
   // Only allow POST requests for submitting new data
@@ -87,21 +136,20 @@ exports.handler = async function(event, context) {
       data.aiResponse = data.aiResponse.replace(/class=/g, 'className=');
       // Ensure self-closing tags have proper JSX format
       data.aiResponse = data.aiResponse.replace(/<(img|br|hr|input)([^>]*)>/g, '<$1$2/>');
+      
+      // Store the AI response in the database
+      try {
+        await db.saveAiResponse(formId, data.aiResponse, 'html');
+        console.log(`AI response saved to database for formId: ${formId}`);
+      } catch (dbError) {
+        console.error('Error saving AI response to database:', dbError);
+      }
     } else {
       console.log(`Warning: No aiResponse found in callback data for formId: ${formId}`);
     }
     
     // Ensure formId is included in the response
     data.formId = formId;
-    
-    // Store the response for later retrieval via GET requests
-    responseStore[formId] = {
-      formId: formId,
-      aiResponse: data.aiResponse || null,
-      timestamp: new Date().toISOString()
-    };
-    
-    console.log(`Stored response for formId: ${formId} for later retrieval`);
     
     // For now, we'll just log it and return a success response
     console.log(`Webhook callback processed successfully for formId: ${formId}`);

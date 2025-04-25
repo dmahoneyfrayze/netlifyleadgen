@@ -2,6 +2,7 @@
 // This avoids CORS issues by having the request come from the server
 
 const fetch = require('node-fetch');
+const db = require('./db');
 
 // Get the webhook URL from environment variables
 // This will be set in the Netlify dashboard
@@ -86,6 +87,16 @@ exports.handler = async function(event, context) {
     const formId = payload.formId || '';
     console.log('Request formId:', formId);
     
+    // Store the form submission in the database
+    if (formId) {
+      try {
+        await db.saveFormSubmission(formId, payload);
+        console.log('Form submission saved to database for formId:', formId);
+      } catch (dbError) {
+        console.error('Error saving form submission to database:', dbError);
+      }
+    }
+    
     // Ensure the callbackUrl is an absolute URL
     if (payload.callbackUrl && !payload.callbackUrl.startsWith('http')) {
       const siteUrl = getSiteUrl(event);
@@ -143,17 +154,22 @@ exports.handler = async function(event, context) {
       console.log('AI response found in webhook response, length:', responseData.aiResponse.length);
       // Process HTML to be React-compatible
       responseData.aiResponse = prepareHtmlForReact(responseData.aiResponse);
+      
+      // Store the AI response in the database
+      if (formId) {
+        try {
+          await db.saveAiResponse(formId, responseData.aiResponse, 'html');
+          console.log('AI response saved to database for formId:', formId);
+        } catch (dbError) {
+          console.error('Error saving AI response to database:', dbError);
+        }
+      }
     } else {
       console.log('No AI response found in webhook response');
     }
     
     // Always include the formId in the response
     responseData.formId = formId;
-    
-    // Store the response in localStorage for later retrieval
-    // This happens on the server side, so we need to save it somewhere
-    // For a real system, you'd use a database or other persistent storage
-    // For now, we rely on the frontend to store this in localStorage
 
     // Return the webhook's response with AI-generated content included
     return {
