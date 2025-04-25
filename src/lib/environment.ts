@@ -9,8 +9,15 @@ interface ImportMeta {
 }
 
 // Environment variables
+// Load the webhook URL from the environment variable
 // Default to the hardcoded URL if environment variable is not available
-export const WEBHOOK_URL = import.meta.env.VITE_WEBHOOK_URL || "https://n8n.frayze.ca/webhook-test/d685ac24-5d07-43af-8311-bac8fbfe651d";
+const envWebhookUrl = import.meta.env.VITE_WEBHOOK_URL;
+export const WEBHOOK_URL = envWebhookUrl || "https://n8n.frayze.ca/webhook-test/d685ac24-5d07-43af-8311-bac8fbfe651d";
+
+// Log to console in development mode to verify environment variable loading
+if (import.meta.env.DEV) {
+  console.log('Using webhook URL:', envWebhookUrl ? 'From environment variable' : 'Fallback URL');
+}
 
 // Create an alternative URL for CORS issues
 // For development, you could use a CORS proxy service

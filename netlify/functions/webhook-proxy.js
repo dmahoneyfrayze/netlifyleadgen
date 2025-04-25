@@ -3,8 +3,10 @@
 
 const fetch = require('node-fetch');
 
-// The webhook URL to forward requests to
-const WEBHOOK_URL = "https://n8n.frayze.ca/webhook-test/d685ac24-5d07-43af-8311-bac8fbfe651d";
+// Get the webhook URL from environment variables
+// This will be set in the Netlify dashboard
+// If not set, fall back to the hardcoded URL
+const WEBHOOK_URL = process.env.VITE_WEBHOOK_URL || "https://n8n.frayze.ca/webhook-test/d685ac24-5d07-43af-8311-bac8fbfe651d";
 
 exports.handler = async function(event, context) {
   // Only allow POST requests
@@ -19,6 +21,8 @@ exports.handler = async function(event, context) {
   }
 
   try {
+    console.log('Forwarding request to webhook URL:', WEBHOOK_URL);
+    
     // Parse the incoming request body
     const payload = JSON.parse(event.body);
     
