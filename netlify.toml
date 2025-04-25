@@ -6,7 +6,26 @@
   NODE_VERSION = "20"
   NPM_VERSION = "10"
   CI = "false"
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
   NETLIFY_SKIP_PLUGIN_INSTALL = "true"
+  NEXT_PLUGIN_FORCE_DISABLE = "true"
+
+[build.processing]
+  skip_processing = false
+
+[build.processing.html]
+  pretty_urls = true
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.images]
+  compress = true
 
 [[redirects]]
   from = "/*"
