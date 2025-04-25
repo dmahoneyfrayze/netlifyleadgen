@@ -6,12 +6,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   ArrowRight, Building2, Calendar, Clock, DollarSign, 
-  Check, Zap, AlertCircle, Loader2
+  Check, Zap, AlertCircle, Loader2, Download
 } from "lucide-react";
 import { type Addon } from "@/types";
 import { formatCurrency } from "@/lib/format-utils";
 import { submitFormToWebhook } from "@/lib/api";
 import { generateQuotePDF } from "@/lib/pdf-utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface ContactFormProps {
   totalPrice: number;
@@ -82,6 +90,112 @@ const checkForCallbackResults = async (formId: string): Promise<{ aiResponse: st
   }
 };
 
+// Function to generate a PDF from the action plan HTML
+const generateActionPlanPDF = (aiResponse: string, businessName: string = "") => {
+  try {
+    // Create a new instance of jsPDF
+    const { jsPDF } = require('jspdf');
+    
+    // Create PDF document
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'px',
+      format: [800, 1100]
+    });
+    
+    // Set dark background color
+    doc.setFillColor(24, 28, 49); // Dark navy background
+    doc.rect(0, 0, 800, 1100, 'F');
+    
+    // Create a temporary div to render the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = aiResponse;
+    
+    // Extract content as text (simplification, would need HTML-to-PDF rendering in production)
+    const title = tempDiv.querySelector('h2')?.textContent || 'Your Action Plan';
+    const paragraphs = Array.from(tempDiv.querySelectorAll('p')).map(p => p.textContent);
+    const listItems = Array.from(tempDiv.querySelectorAll('li')).map(li => li.textContent);
+    
+    // Set up styles
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(36);
+    
+    // Add FRAYZE branding
+    doc.text('FRAYZE', 40, 60);
+    
+    // Add action plan title
+    doc.setFontSize(28);
+    doc.text('CUSTOM ACTION PLAN', 40, 110);
+    
+    // Add date
+    doc.setFontSize(16);
+    doc.setTextColor(200, 200, 200);
+    const date = new Date().toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    doc.text(date, 40, 140);
+    
+    // Add content
+    let yPos = 200;
+    
+    // Title
+    doc.setFontSize(24);
+    doc.setTextColor(255, 255, 255);
+    doc.text(title, 40, yPos);
+    yPos += 40;
+    
+    // Paragraphs
+    doc.setFontSize(16);
+    doc.setTextColor(200, 200, 200);
+    
+    paragraphs.forEach(paragraph => {
+      if (!paragraph) return;
+      
+      // Multi-line text - need to split long text
+      const lines = doc.splitTextToSize(paragraph, 720);
+      doc.text(lines, 40, yPos);
+      yPos += lines.length * 20 + 20; // Add spacing based on number of lines
+    });
+    
+    // List items
+    if (listItems.length > 0) {
+      yPos += 20;
+      doc.setFontSize(18);
+      doc.setTextColor(255, 255, 255);
+      doc.text('Key Action Items:', 40, yPos);
+      yPos += 30;
+      
+      doc.setFontSize(16);
+      doc.setTextColor(200, 200, 200);
+      
+      listItems.forEach((item, index) => {
+        if (!item) return;
+        
+        // Add bullet point 
+        doc.text(`• ${item}`, 40, yPos);
+        yPos += 25;
+      });
+    }
+    
+    // Footer
+    doc.setFontSize(14);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Contact us: hello@frayze.ca | Book a call: frayze.ca/demo', 40, 1050);
+    
+    // Save the PDF
+    const fileName = businessName 
+      ? `frayze-action-plan-${businessName.toLowerCase().replace(/\s+/g, '-')}.pdf`
+      : 'frayze-action-plan.pdf';
+      
+    doc.save(fileName);
+  } catch (error) {
+    console.error('Error generating action plan PDF:', error);
+    alert('There was an error generating your PDF. Please try again or contact support.');
+  }
+};
+
 export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactFormProps) {
   const [formData, setFormData] = useState({
     businessName: "",
@@ -102,6 +216,9 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
   const [formId, setFormId] = useState<string | null>(null);
   const [waitingForCallback, setWaitingForCallback] = useState(false);
   const [pollingCount, setPollingCount] = useState(0);
+  const [isLoadingActionPlan, setIsLoadingActionPlan] = useState(false);
+  const [actionPlanError, setActionPlanError] = useState<string | null>(null);
+  const [showActionPlanModal, setShowActionPlanModal] = useState(false);
 
   // Effect for polling for callback results
   useEffect(() => {
@@ -228,6 +345,38 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
     }
   };
 
+  // Function to manually load action plan
+  const loadActionPlan = async () => {
+    if (!formId) {
+      setActionPlanError("No form ID available. Please try submitting the form again.");
+      return;
+    }
+    
+    setIsLoadingActionPlan(true);
+    setActionPlanError(null);
+    
+    try {
+      console.log('Manually loading action plan for formId:', formId);
+      const result = await checkForCallbackResults(formId);
+      
+      if (result && result.aiResponse) {
+        console.log('Received AI response from manual load');
+        // Process the HTML to ensure it's compatible with React
+        const processedHtml = result.aiResponse.replace(/class=/g, 'className=');
+        setAiResponse(processedHtml);
+        // Open the modal after loading the action plan
+        setShowActionPlanModal(true);
+      } else {
+        setActionPlanError("No action plan found. Our team may still be working on your custom plan.");
+      }
+    } catch (error) {
+      console.error("Error loading action plan:", error);
+      setActionPlanError("Failed to load action plan. Please try again later.");
+    } finally {
+      setIsLoadingActionPlan(false);
+    }
+  };
+
   if (showSuccess) {
     return (
       <Card className="max-w-2xl mx-auto">
@@ -271,14 +420,58 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
               </div>
             ) : aiResponse ? (
               <div className="mt-8 text-left p-4 border rounded-lg bg-white shadow-sm">
-                <div dangerouslySetInnerHTML={{ __html: aiResponse }} />
+                <h3 className="text-lg font-medium mb-2">Your Custom Action Plan</h3>
+                <div 
+                  className="max-h-64 overflow-y-auto mb-4"
+                  dangerouslySetInnerHTML={{ __html: aiResponse }} 
+                />
+                <div className="flex justify-end space-x-3 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowActionPlanModal(true)}
+                  >
+                    View Full Plan
+                  </Button>
+                  <Button
+                    onClick={() => generateActionPlanPDF(aiResponse, formData.businessName)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download PDF
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div className="mt-8 p-4 border rounded border-yellow-200 bg-yellow-50">
-                <div className="flex items-center text-yellow-700">
-                  <AlertCircle className="w-5 h-5 mr-2" />
-                  <p className="text-sm">Waiting for response from server...</p>
+              <div className="mt-8 space-y-4">
+                <div className="p-4 border rounded border-yellow-200 bg-yellow-50">
+                  <div className="flex items-center text-yellow-700">
+                    <AlertCircle className="w-5 h-5 mr-2" />
+                    <p className="text-sm">Your custom action plan will be available shortly.</p>
+                  </div>
                 </div>
+                
+                <Button 
+                  onClick={loadActionPlan}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={isLoadingActionPlan}
+                >
+                  {isLoadingActionPlan ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading Action Plan...
+                    </>
+                  ) : (
+                    <>
+                      Get Your Action Plan
+                    </>
+                  )}
+                </Button>
+                
+                {actionPlanError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded text-red-600">
+                    <p className="text-sm">{actionPlanError}</p>
+                  </div>
+                )}
               </div>
             )}
             
@@ -310,209 +503,247 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <div className="flex items-center justify-between mb-4">
-          <CardTitle>Complete Your Custom Quote Request</CardTitle>
-          <div className="flex items-center">
-            <Zap className="w-6 h-6 text-[#0066FF] mr-2" />
-            <span className="text-xl font-bold text-[#1F2937]">FRAYZE</span>
+    <>
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <div className="flex items-center justify-between mb-4">
+            <CardTitle>Complete Your Custom Quote Request</CardTitle>
+            <div className="flex items-center">
+              <Zap className="w-6 h-6 text-[#0066FF] mr-2" />
+              <span className="text-xl font-bold text-[#1F2937]">FRAYZE</span>
+            </div>
           </div>
-        </div>
-        {showConfirmation && (
-          <div className="bg-primary/5 p-4 rounded-lg mt-4">
-            <h3 className="font-semibold mb-2 flex items-center">
-              <Check className="w-5 h-5 mr-2 text-[#0066FF]" />
-              Review Your Quote Request
-            </h3>
-            <p className="text-sm text-muted-foreground">Please review your information before final submission.</p>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {showConfirmation && (
-          <div className="bg-muted/30 rounded-lg p-4 mb-6">
-            <h4 className="font-medium mb-3">Selected Services</h4>
-            <div className="space-y-2">
-              {selected.map((addon) => (
-                <div key={addon.id} className="flex justify-between text-sm">
-                  <span>{addon.name}</span>
-                  <span className="text-muted-foreground">
-                    {addon.pricing.type === 'inquire' ? 'Quote Required' : formatCurrency(addon.pricing.amount || 0)}
-                  </span>
-                </div>
-              ))}
-              <div className="pt-2 mt-2 border-t">
-                <div className="flex justify-between font-medium">
-                  <span>Total Estimated</span>
-                  <span>{formatCurrency(totalPrice)}</span>
+          {showConfirmation && (
+            <div className="bg-primary/5 p-4 rounded-lg mt-4">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <Check className="w-5 h-5 mr-2 text-[#0066FF]" />
+                Review Your Quote Request
+              </h3>
+              <p className="text-sm text-muted-foreground">Please review your information before final submission.</p>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {showConfirmation && (
+            <div className="bg-muted/30 rounded-lg p-4 mb-6">
+              <h4 className="font-medium mb-3">Selected Services</h4>
+              <div className="space-y-2">
+                {selected.map((addon) => (
+                  <div key={addon.id} className="flex justify-between text-sm">
+                    <span>{addon.name}</span>
+                    <span className="text-muted-foreground">
+                      {addon.pricing.type === 'inquire' ? 'Quote Required' : formatCurrency(addon.pricing.amount || 0)}
+                    </span>
+                  </div>
+                ))}
+                <div className="pt-2 mt-2 border-t">
+                  <div className="flex justify-between font-medium">
+                    <span>Total Estimated</span>
+                    <span>{formatCurrency(totalPrice)}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center">
+                <Building2 className="w-4 h-4 mr-2 text-muted-foreground" />
+                Business Name
+              </label>
+              <Input
+                value={formData.businessName}
+                onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                placeholder="Your business name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Contact Name</label>
+              <Input
+                value={formData.contactName}
+                onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                placeholder="Your full name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email</label>
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="your@email.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Phone</label>
+              <Input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="Your phone number"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Website URL</label>
+              <Input
+                type="url"
+                value={formData.websiteUrl}
+                onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+                placeholder="https://your-website.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center">
+                <DollarSign className="w-4 h-4 mr-2 text-muted-foreground" />
+                Budget Range
+              </label>
+              <Select
+                value={formData.budget}
+                onValueChange={(value) => setFormData({ ...formData, budget: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select budget range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="300-1k">$300 - $1,000</SelectItem>
+                  <SelectItem value="1k-2.5k">$1,000 - $2,500</SelectItem>
+                  <SelectItem value="2.5k-5k">$2,500 - $5,000</SelectItem>
+                  <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
+                  <SelectItem value="10k+">$10,000+</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center">
+                <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
+                Implementation Timeline
+              </label>
+              <Select
+                value={formData.timeline}
+                onValueChange={(value) => setFormData({ ...formData, timeline: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select timeline" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="asap">As soon as possible</SelectItem>
+                  <SelectItem value="1-month">Within 1 month</SelectItem>
+                  <SelectItem value="3-months">Within 3 months</SelectItem>
+                  <SelectItem value="6-months">Within 6 months</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center">
+                <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+                Best Time to Contact
+              </label>
+              <Select
+                value={formData.bestTimeToContact}
+                onValueChange={(value) => setFormData({ ...formData, bestTimeToContact: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select preferred time" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="morning">Morning (9am - 12pm)</SelectItem>
+                  <SelectItem value="afternoon">Afternoon (12pm - 4pm)</SelectItem>
+                  <SelectItem value="evening">Evening (4pm - 6pm)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <label className="text-sm font-medium flex items-center">
-              <Building2 className="w-4 h-4 mr-2 text-muted-foreground" />
-              Business Name
-            </label>
-            <Input
-              value={formData.businessName}
-              onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-              placeholder="Your business name"
+            <label className="text-sm font-medium">Additional Information</label>
+            <Textarea
+              value={formData.additionalInfo}
+              onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
+              placeholder="Tell us about your specific needs, challenges, or any questions you have..."
+              className="min-h-[100px]"
             />
+          </div>
+
+          <div className="flex justify-between items-center pt-4">
+            <Button variant="outline" onClick={onBack}>
+              Back to Stack Builder
+            </Button>
+            <Button 
+              type="submit"
+              disabled={!formData.businessName || !formData.contactName || !formData.email || isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="animate-pulse">Submitting...</span>
+                </>
+              ) : (
+                <>
+                  {showConfirmation ? 'Confirm & Submit' : 'Review Quote Request'}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
+          </form>
+
+          {submitError && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 flex items-center">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              <span className="text-sm">{submitError}</span>
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground text-center">
+            Your information is secure and will only be used to process your quote request.
+            A Frayze team member will contact you within 1 business day.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Action Plan Modal */}
+      <Dialog open={showActionPlanModal} onOpenChange={setShowActionPlanModal}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Your Custom Action Plan</DialogTitle>
+          </DialogHeader>
+          
+          <div className="max-h-[70vh] overflow-y-auto my-4">
+            {aiResponse ? (
+              <div dangerouslySetInnerHTML={{ __html: aiResponse }} />
+            ) : (
+              <div className="p-4 bg-gray-50 rounded">
+                <p className="text-gray-600">No action plan available yet.</p>
+              </div>
+            )}
           </div>
           
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Contact Name</label>
-            <Input
-              value={formData.contactName}
-              onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-              placeholder="Your full name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Email</label>
-            <Input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="your@email.com"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Phone</label>
-            <Input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="Your phone number"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Website URL</label>
-            <Input
-              type="url"
-              value={formData.websiteUrl}
-              onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-              placeholder="https://your-website.com"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium flex items-center">
-              <DollarSign className="w-4 h-4 mr-2 text-muted-foreground" />
-              Budget Range
-            </label>
-            <Select
-              value={formData.budget}
-              onValueChange={(value) => setFormData({ ...formData, budget: value })}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowActionPlanModal(false)}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select budget range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="300-1k">$300 - $1,000</SelectItem>
-                <SelectItem value="1k-2.5k">$1,000 - $2,500</SelectItem>
-                <SelectItem value="2.5k-5k">$2,500 - $5,000</SelectItem>
-                <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
-                <SelectItem value="10k+">$10,000+</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium flex items-center">
-              <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
-              Implementation Timeline
-            </label>
-            <Select
-              value={formData.timeline}
-              onValueChange={(value) => setFormData({ ...formData, timeline: value })}
+              Close
+            </Button>
+            
+            <Button
+              onClick={() => generateActionPlanPDF(aiResponse!, formData.businessName)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select timeline" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="asap">As soon as possible</SelectItem>
-                <SelectItem value="1-month">Within 1 month</SelectItem>
-                <SelectItem value="3-months">Within 3 months</SelectItem>
-                <SelectItem value="6-months">Within 6 months</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium flex items-center">
-              <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-              Best Time to Contact
-            </label>
-            <Select
-              value={formData.bestTimeToContact}
-              onValueChange={(value) => setFormData({ ...formData, bestTimeToContact: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select preferred time" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="morning">Morning (9am - 12pm)</SelectItem>
-                <SelectItem value="afternoon">Afternoon (12pm - 4pm)</SelectItem>
-                <SelectItem value="evening">Evening (4pm - 6pm)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Additional Information</label>
-          <Textarea
-            value={formData.additionalInfo}
-            onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
-            placeholder="Tell us about your specific needs, challenges, or any questions you have..."
-            className="min-h-[100px]"
-          />
-        </div>
-
-        <div className="flex justify-between items-center pt-4">
-          <Button variant="outline" onClick={onBack}>
-            Back to Stack Builder
-          </Button>
-          <Button 
-            type="submit"
-            disabled={!formData.businessName || !formData.contactName || !formData.email || isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <span className="animate-pulse">Submitting...</span>
-              </>
-            ) : (
-              <>
-                {showConfirmation ? 'Confirm & Submit' : 'Review Quote Request'}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
-        </div>
-        </form>
-
-        {submitError && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 flex items-center">
-            <AlertCircle className="w-4 h-4 mr-2" />
-            <span className="text-sm">{submitError}</span>
-          </div>
-        )}
-
-        <p className="text-xs text-muted-foreground text-center">
-          Your information is secure and will only be used to process your quote request.
-          A Frayze team member will contact you within 1 business day.
-        </p>
-      </CardContent>
-    </Card>
+              <Download className="w-4 h-4 mr-2" />
+              Download as PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
