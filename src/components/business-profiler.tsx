@@ -130,10 +130,9 @@ export function BusinessProfiler({ onSubmit }: BusinessProfilerProps) {
 
       {showProfiler && (
         <motion.div 
-          className="fixed inset-0 bg-white/95 backdrop-blur z-50 overflow-auto flex items-center justify-center"
+          className="fixed inset-0 bg-white/95 backdrop-blur z-50 overflow-auto flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          style={{ width: '1920px', height: '1080px', margin: '0 auto' }}
         >
           <Card className="w-full max-w-2xl mx-auto">
             <CardHeader>

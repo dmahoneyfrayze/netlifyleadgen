@@ -30,6 +30,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import * as LucideIcons from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import { getStoredResponse } from "@/lib/callback-storage";
 
 export default function FrayzeStackBuilder() {
@@ -340,8 +341,8 @@ export default function FrayzeStackBuilder() {
   };
   
   return (
-    <div className="relative w-full bg-gradient-to-b from-background to-background/90">
-      <div className="fixed inset-0 pointer-events-none">
+    <div className="relative w-full min-h-screen flex flex-col bg-gradient-to-b from-background to-background/90">
+      <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(0,102,255,0.1),rgba(255,255,255,0)_50%)]" />
       </div>
       
@@ -357,7 +358,7 @@ export default function FrayzeStackBuilder() {
         </Button>
       )}
 
-      <div className="mx-auto" style={{ width: '1920px', height: '1080px', maxHeight: '1080px', overflow: 'hidden' }}>
+      <div className="flex-grow w-full">
         {showHero ? (
           <Hero onStartBuilding={handleStartBuilding} />
         ) : (
@@ -368,8 +369,7 @@ export default function FrayzeStackBuilder() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="container px-4 py-8 mx-auto"
-                style={{ maxWidth: '1920px' }}
+                className="container px-4 py-8 mx-auto max-w-7xl"
                 id="profiler-step"
               >
                 <BusinessProfiler 
@@ -384,11 +384,10 @@ export default function FrayzeStackBuilder() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="container px-4 py-8 mx-auto overflow-y-auto"
-                style={{ maxWidth: '1920px', maxHeight: 'calc(1080px - 120px)' }}
+                className="container px-4 py-8 mx-auto max-w-7xl"
                 id="addons"
               >
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_350px] gap-8">
                   <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b">
                       <div>
@@ -450,8 +449,7 @@ export default function FrayzeStackBuilder() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="container px-4 py-8 mx-auto"
-                style={{ maxWidth: '1920px' }}
+                className="container px-4 py-8 mx-auto max-w-7xl"
               >
                 <div className="max-w-2xl mx-auto">
                   <div className="inline-flex items-center justify-center p-3 rounded-full bg-gradient-to-br from-[#0066FF] to-[#00F6A3] text-white mb-4 mx-auto">
@@ -569,8 +567,8 @@ export default function FrayzeStackBuilder() {
       </div>
       
       {showContactForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto py-8" style={{ width: '1920px', margin: '0 auto' }}>
-          <div className="container mx-auto px-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto py-8">
+          <div className="container mx-auto px-4 max-w-4xl">
             <ContactForm
               totalPrice={totalPrice}
               selected={selected}
@@ -612,7 +610,7 @@ export default function FrayzeStackBuilder() {
                 </p>
                 
                 <div className="flex items-center justify-center">
-                  <LucideIcons.Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+                  <LoaderCircle className="w-6 h-6 animate-spin text-blue-600 mr-2" />
                   <span>Loading... Please wait.</span>
                 </div>
               </div>
