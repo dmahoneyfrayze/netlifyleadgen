@@ -770,13 +770,14 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
             />
           </div>
 
-          <div className="flex justify-between items-center pt-4">
-            <Button variant="outline" onClick={onBack}>
+          <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
+            <Button variant="outline" onClick={onBack} className="w-full sm:w-auto">
               Back to Stack Builder
             </Button>
             <Button 
               type="submit"
               disabled={!formData.businessName || !formData.contactName || !formData.email || isSubmitting}
+              className="w-full sm:w-auto"
             >
               {isSubmitting ? (
                 <>

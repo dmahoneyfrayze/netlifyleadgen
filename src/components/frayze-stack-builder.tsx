@@ -30,7 +30,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import * as LucideIcons from 'lucide-react';
-import { LoaderCircle } from 'lucide-react';
 import { getStoredResponse } from "@/lib/callback-storage";
 
 export default function FrayzeStackBuilder() {
@@ -387,6 +386,16 @@ export default function FrayzeStackBuilder() {
                 className="container px-4 py-8 mx-auto max-w-7xl"
                 id="addons"
               >
+                {/* Mobile Summary Section - Shown only on smaller screens */}
+                <div className="block md:hidden mb-6">
+                  <AddonSummary 
+                    selected={selected} 
+                    totalPrice={totalPrice} 
+                    toggleAddon={toggleAddon}
+                    onNext={() => setShowContactForm(true)}
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] lg:grid-cols-[1fr_350px] gap-8">
                   <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b">
@@ -431,7 +440,8 @@ export default function FrayzeStackBuilder() {
                     )}
                   </div>
                   
-                  <div className="lg:sticky lg:top-6 h-fit">
+                  {/* Desktop Summary Section - Hidden on mobile */}
+                  <div className="hidden md:block lg:sticky lg:top-6 h-fit">
                     <AddonSummary 
                       selected={selected} 
                       totalPrice={totalPrice} 
@@ -610,7 +620,7 @@ export default function FrayzeStackBuilder() {
                 </p>
                 
                 <div className="flex items-center justify-center">
-                  <LoaderCircle className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+                  <LucideIcons.Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
                   <span>Loading... Please wait.</span>
                 </div>
               </div>

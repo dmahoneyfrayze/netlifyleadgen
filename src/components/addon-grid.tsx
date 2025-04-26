@@ -39,7 +39,7 @@ export function AddonGrid({ addons, selected, onToggle, selectedCore }: AddonGri
   return (
     <motion.div 
       layout 
-      className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
+      className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 xs:gap-6"
       initial="hidden"
       animate="show"
       variants={container}
