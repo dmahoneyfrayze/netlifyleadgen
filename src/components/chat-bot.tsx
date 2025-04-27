@@ -114,16 +114,16 @@ export function ChatBot({ onHelpMeChoose }: ChatBotProps) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="fixed bottom-4 right-4 z-50"
+      className="fixed bottom-4 right-4 z-50 w-[300px] sm:w-[350px] md:w-[400px]"
     >
-      <Card className="w-[300px] overflow-hidden shadow-xl border-2">
+      <Card className="w-full overflow-hidden shadow-xl border-2">
         <div className="p-4 border-b bg-gradient-to-r from-[#0066FF]/10 to-[#00F6A3]/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Bot className="w-5 h-5 text-primary" />
               </div>
-              <span className="font-semibold">Hello, I'm Frayzi</span>
+              <span className="font-semibold text-sm sm:text-base">Hello, I'm Frayzi</span>
             </div>
             <Button
               variant="ghost"
@@ -142,7 +142,7 @@ export function ChatBot({ onHelpMeChoose }: ChatBotProps) {
           </p>
           
           <Button 
-            className="w-full bg-gradient-to-r from-[#0066FF] to-[#00F6A3] hover:from-[#0052CC] hover:to-[#00E69D] text-white"
+            className="w-full bg-gradient-to-r from-[#0066FF] to-[#00F6A3] hover:from-[#0052CC] hover:to-[#00E69D] text-white text-sm sm:text-base"
             onClick={() => {
               setHasInteracted(true);
               onHelpMeChoose();

@@ -132,3 +132,33 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .container, .main-content {
+    padding: 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  iframe {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+  }
+}
+
+/* Ensure all media elements are responsive */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Mobile-first container styles */
+.container, .main-content {
+  width: 100%;
+  max-width: 100%;
+  padding: 0 1rem;
+  margin: 0 auto;
+}
