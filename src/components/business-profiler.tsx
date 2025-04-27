@@ -24,36 +24,36 @@ export function BusinessProfiler({ onSubmit }: BusinessProfilerProps) {
   const [showProfiler, setShowProfiler] = useState(false);
   
   return (
-    <div className="space-y-6 business-profiler">
-      <div className="text-center max-w-3xl mx-auto mb-4 sm:mb-8 px-4 sm:px-0">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#0066FF] text-white flex items-center justify-center font-bold text-sm sm:text-base">
+    <div className="space-y-4 xs:space-y-6 business-profiler">
+      <div className="text-center max-w-3xl mx-auto mb-3 sm:mb-8 px-3 sm:px-4">
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+          <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-8 sm:h-8 rounded-full bg-[#0066FF] text-white flex items-center justify-center font-bold text-[10px] xs:text-xs sm:text-base">
             1
           </div>
-          <div className="h-px w-8 sm:w-12 bg-border" />
-          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-muted/50 text-muted-foreground flex items-center justify-center font-bold text-sm sm:text-base">
+          <div className="h-px w-6 sm:w-12 bg-border" />
+          <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-8 sm:h-8 rounded-full bg-muted/50 text-muted-foreground flex items-center justify-center font-bold text-[10px] xs:text-xs sm:text-base">
             2
           </div>
-          <div className="h-px w-8 sm:w-12 bg-border" />
-          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-muted/50 text-muted-foreground flex items-center justify-center font-bold text-sm sm:text-base">
+          <div className="h-px w-6 sm:w-12 bg-border" />
+          <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-8 sm:h-8 rounded-full bg-muted/50 text-muted-foreground flex items-center justify-center font-bold text-[10px] xs:text-xs sm:text-base">
             3
           </div>
         </div>
-        <div className="flex items-center justify-center mb-4 sm:mb-6">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#0066FF] to-[#00F6A3] flex items-center justify-center rounded">
-            <Bolt className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+        <div className="flex items-center justify-center mb-3 sm:mb-6">
+          <div className="w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#0066FF] to-[#00F6A3] flex items-center justify-center rounded">
+            <Bolt className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-6 sm:h-6 text-white" />
           </div>
-          <span className="text-xl sm:text-2xl font-bold bg-gradient-to-br from-[#0066FF] to-[#00F6A3] bg-clip-text text-transparent ml-2">Start Here</span>
+          <span className="text-base xs:text-lg sm:text-2xl font-bold bg-gradient-to-br from-[#0066FF] to-[#00F6A3] bg-clip-text text-transparent ml-2">Start Here</span>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-3">Start with a Core System</h2>
-        <p className="text-sm sm:text-base text-muted-foreground">
+        <h2 className="text-lg xs:text-xl sm:text-3xl font-bold mb-2 sm:mb-3 leading-tight">Start with a Core System</h2>
+        <p className="text-[11px] xs:text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
           Every Frayze setup begins with one of our foundational systems.
           Choose the package that best fits your size, goals, or team structure.
         </p>
       </div>
 
-      <div className="space-y-6 px-4 sm:px-0">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-[1800px] mx-auto">
+      <div className="space-y-4 xs:space-y-6 px-3 sm:px-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8 max-w-[1800px] mx-auto">
           {coreSystems.map((system) => (
             <Card
               key={system.id}
@@ -66,20 +66,22 @@ export function BusinessProfiler({ onSubmit }: BusinessProfilerProps) {
                 });
               }}
             >
-              <CardContent className="pt-4 sm:pt-6">
-                <div className="space-y-3 sm:space-y-4">
+              <CardContent className="pt-3 xs:pt-4 sm:pt-6">
+                <div className="space-y-2 xs:space-y-3 sm:space-y-4">
                   <div className="flex justify-between items-start">
-                    <h3 className="text-lg sm:text-xl font-semibold text-[#0066FF] hover:text-[#0052CC] transition-colors">
+                    <h3 className="text-base xs:text-lg sm:text-xl font-semibold text-[#0066FF] hover:text-[#0052CC] transition-colors leading-tight">
                       {system.name}
                     </h3>
-                    <div className="text-base sm:text-lg font-bold">{formatPricing(system.pricing)}</div>
+                    <div className="text-sm xs:text-base sm:text-lg font-bold">{formatPricing(system.pricing)}</div>
                   </div>
                   
-                  <p className="text-sm sm:text-base text-muted-foreground">{system.description}</p>
+                  <p className="text-[11px] xs:text-sm sm:text-base text-muted-foreground leading-relaxed">
+                    {system.description}
+                  </p>
                   
-                  <Button className="w-full group text-sm sm:text-base">
+                  <Button className="w-full group text-xs xs:text-sm sm:text-base">
                     Select This Package
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="ml-2 h-3 w-3 xs:h-4 xs:w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </div>
               </CardContent>

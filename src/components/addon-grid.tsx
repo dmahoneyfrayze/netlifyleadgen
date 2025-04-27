@@ -40,7 +40,7 @@ export function AddonGrid({ addons, selected, onToggle, selectedCore }: AddonGri
   return (
     <motion.div 
       layout 
-      className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3 xs:gap-4 sm:gap-6"
+      className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-2 xs:gap-3 sm:gap-4 md:gap-6 px-0.5 xs:px-0"
       initial="hidden"
       animate="show"
       variants={container}
@@ -53,6 +53,7 @@ export function AddonGrid({ addons, selected, onToggle, selectedCore }: AddonGri
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           variants={item}
+          className="min-w-[220px] xs:min-w-0"
         >
           <AddonCard
             addon={addon}
