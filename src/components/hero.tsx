@@ -1,7 +1,7 @@
-import { Target, Zap, Building2, Users, LineChart, Globe, Bolt, Bot } from "lucide-react";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Target, Zap, Building2, Users, LineChart, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Testimonials } from "@/components/testimonials";
+import React from 'react';
 
 const categories = [
   {
@@ -86,35 +86,50 @@ interface HeroProps {
   onStartBuilding: () => void;
 }
 
-export function Hero({ onStartBuilding }: HeroProps) {
-  const handleStartBuilding = () => {
-    onStartBuilding();
-  };
-  
+export function Hero({ onStartBuilding }: HeroProps): React.ReactElement {
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
       <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tight mb-4 sm:mb-6">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight mb-4 sm:mb-6">
           Build Your Custom Marketing Stack
         </h1>
-        <p className="text-base sm:text-lg lg:text-xl text-muted-foreground mb-6 sm:mb-8">
+        <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground mb-8 sm:mb-10">
           Select the services you need and get a personalized quote in minutes
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {categories.map((category) => (
-            <Button
-              key={category.name}
-              variant="outline"
-              size="lg"
-              className="h-auto py-3 sm:py-4 px-4 sm:px-6 flex flex-col items-center justify-center gap-2 text-sm sm:text-base"
-              onClick={handleStartBuilding}
-            >
-              <category.icon className="w-5 h-5 sm:w-6 sm:h-6" />
-              <span className="font-medium">{category.name}</span>
-            </Button>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+          {categories.map((category) => {
+            const Icon = category.icon;
+            return (
+              <Button
+                key={category.name}
+                variant="outline"
+                size="lg"
+                className="h-auto py-4 sm:py-6 flex flex-col items-center justify-center gap-3 hover:border-primary/30 hover:bg-primary/5"
+                onClick={onStartBuilding}
+              >
+                <Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${category.color}`} />
+                <span className="font-medium">{category.name}</span>
+              </Button>
+            );
+          })}
+        </div>
+        <div className="flex flex-col items-center gap-4">
+          <Button 
+            size="lg"
+            className="bg-gradient-to-r from-[#0066FF] to-[#00F6A3] hover:from-[#0052CC] hover:to-[#00E69D] text-white px-8 py-6 text-lg h-auto"
+            onClick={onStartBuilding}
+          >
+            Start Building Your Stack
+          </Button>
+          <button 
+            onClick={onStartBuilding}
+            className="text-sm sm:text-base text-muted-foreground hover:text-primary transition-colors"
+          >
+            Need help? Tell us your goal and we'll build a quote for you
+          </button>
         </div>
       </div>
+      <Testimonials />
     </div>
   );
 }
