@@ -92,88 +92,27 @@ export function Hero({ onStartBuilding }: HeroProps) {
   };
   
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-background py-16 border-b border-border">
-      <div className="absolute inset-0 bg-grid opacity-10" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white" />
-      <div className="container relative px-4 mx-auto max-w-7xl">
-        <div className="absolute top-0 left-4 flex items-center">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#0066FF] to-[#00F6A3] flex items-center justify-center rounded">
-              <Bolt className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-br from-[#0066FF] to-[#00F6A3] bg-clip-text text-transparent ml-2">FRAYZE</span>
-          </div>
-        </div>
-        <div className="flex flex-col items-center text-center">
-          <div className="inline-flex items-center justify-center p-2 mb-5 bg-primary/10 rounded-xl hover:bg-primary/20 transition-colors duration-300">
-            <Zap className="w-5 h-5 mr-2 text-primary" strokeWidth={2.5} />
-            <span className="text-sm font-medium text-[#1F2937]">Build Your Custom System</span>
-          </div>
-          
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            Build Your <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">Perfect Stack</span>
-          </h1>
-          
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-4">
-            Select a core system, then choose any add-ons you need.
-            Your estimate will update in real time — no commitment, just clarity.
-          </p>
-          <p className="text-sm text-muted-foreground mb-8 flex items-center gap-2">
-            <span>🧾</span> All prices are estimates. Final proposal may vary based on usage, business size, or tech requirements.
-          </p>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-4xl">
-            {categories.map((category) => (
-              <HoverCard key={category.name}>
-                <HoverCardTrigger asChild>
-                  <button 
-                    onClick={handleStartBuilding}
-                    className="flex flex-col items-center p-4 rounded-lg bg-card border hover:border-primary/60 hover:shadow-md hover:bg-primary/5 transition-all duration-300 w-full"
-                  >
-                    <category.icon className={`w-8 h-8 mb-2 ${category.color}`} />
-                    <span className="text-sm font-medium text-[#1F2937]">{category.name}</span>
-                  </button>
-                </HoverCardTrigger>
-                <HoverCardContent className="w-80 p-4">
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold">{category.description}</h4>
-                    <div className="pt-2">
-                      <h5 className="text-xs font-medium text-muted-foreground mb-1">What goes here:</h5>
-                      <ul className="text-xs space-y-1">
-                        {category.includes.map((item) => (
-                          <li key={item} className="flex items-center">
-                            <span className="w-1 h-1 rounded-full bg-primary/60 mr-2" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </HoverCardContent>
-              </HoverCard>
-            ))}
-          </div>
-          
-          <div className="mt-8 flex flex-col items-center">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+      <div className="max-w-4xl mx-auto text-center">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tight mb-4 sm:mb-6">
+          Build Your Custom Marketing Stack
+        </h1>
+        <p className="text-base sm:text-lg lg:text-xl text-muted-foreground mb-6 sm:mb-8">
+          Select the services you need and get a personalized quote in minutes
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {categories.map((category) => (
             <Button
+              key={category.name}
+              variant="outline"
               size="lg"
-              className="bg-gradient-to-r from-[#0066FF] to-[#00F6A3] hover:from-[#0052CC] hover:to-[#00E69D] text-white shadow-lg hover:shadow-xl transition-all duration-300 mb-6 px-8"
+              className="h-auto py-3 sm:py-4 px-4 sm:px-6 flex flex-col items-center justify-center gap-2 text-sm sm:text-base"
               onClick={handleStartBuilding}
             >
-              Start Building Your Stack
+              <category.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+              <span className="font-medium">{category.name}</span>
             </Button>
-            
-            <div className="mb-6 flex items-center justify-center gap-2 text-sm">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-primary hover:bg-blue-100 transition-colors cursor-pointer"
-                onClick={handleStartBuilding}
-              >
-                <Bot className="w-4 h-4" />
-                <span>Need help? Tell us your goal and we'll build a quote for you</span>
-              </div>
-            </div>
-            
-            <Testimonials />
-          </div>
+          ))}
         </div>
       </div>
     </div>

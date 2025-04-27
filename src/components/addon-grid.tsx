@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { type Addon } from "@/types";
 import { AddonCard } from "@/components/addon-card";
+import React from "react";
 
 interface AddonGridProps {
   addons: Addon[];
@@ -9,7 +10,7 @@ interface AddonGridProps {
   selectedCore: Addon | null;
 }
 
-export function AddonGrid({ addons, selected, onToggle, selectedCore }: AddonGridProps) {
+export function AddonGrid({ addons, selected, onToggle, selectedCore }: AddonGridProps): React.ReactElement {
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -30,7 +31,7 @@ export function AddonGrid({ addons, selected, onToggle, selectedCore }: AddonGri
   };
 
   // Check if an addon is included in the core system
-  const isIncludedInCore = (addonId: string) => {
+  const isIncludedInCore = (addonId: string): boolean => {
     return selectedCore?.includes?.includes(addonId) || false;
   };
 

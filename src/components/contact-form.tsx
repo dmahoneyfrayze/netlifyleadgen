@@ -600,210 +600,188 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
   }
 
   return (
-    <>
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <div className="flex items-center justify-between mb-4">
-            <CardTitle>Complete Your Custom Quote Request</CardTitle>
-            <div className="flex items-center">
-              <Zap className="w-6 h-6 text-[#0066FF] mr-2" />
-              <span className="text-xl font-bold text-[#1F2937]">FRAYZE</span>
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
+      <Card className="w-full">
+        <CardHeader className="space-y-4">
+          <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-center">Complete Your Quote</CardTitle>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <span className="text-base sm:text-lg lg:text-xl font-semibold">Total: {formatCurrency(totalPrice)}</span>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto text-sm sm:text-base"
+              onClick={onBack}
+            >
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+              Back to Builder
+            </Button>
           </div>
-          {showConfirmation && (
-            <div className="bg-primary/5 p-4 rounded-lg mt-4">
-              <h3 className="font-semibold mb-2 flex items-center">
-                <Check className="w-5 h-5 mr-2 text-[#0066FF]" />
-                Review Your Quote Request
-              </h3>
-              <p className="text-sm text-muted-foreground">Please review your information before final submission.</p>
-            </div>
-          )}
         </CardHeader>
-        <CardContent className="space-y-6">
-          {showConfirmation && (
-            <div className="bg-muted/30 rounded-lg p-4 mb-6">
-              <h4 className="font-medium mb-3">Selected Services</h4>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                {selected.map((addon) => (
-                  <div key={addon.id} className="flex justify-between text-sm">
-                    <span>{addon.name}</span>
-                    <span className="text-muted-foreground">
-                      {addon.pricing.type === 'inquire' ? 'Quote Required' : formatCurrency(addon.pricing.amount || 0)}
-                    </span>
-                  </div>
-                ))}
-                <div className="pt-2 mt-2 border-t">
-                  <div className="flex justify-between font-medium">
-                    <span>Total Estimated</span>
-                    <span>{formatCurrency(totalPrice)}</span>
-                  </div>
+                <label className="text-sm sm:text-base font-medium">Business Name</label>
+                <div className="relative">
+                  <BuildingOfficeIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Your business name"
+                    value={formData.businessName}
+                    onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                    className="pl-10 text-sm sm:text-base"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm sm:text-base font-medium">Contact Name</label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Your name"
+                    value={formData.contactName}
+                    onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                    className="pl-10 text-sm sm:text-base"
+                    required
+                  />
                 </div>
               </div>
             </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center">
-                <Building2 className="w-4 h-4 mr-2 text-muted-foreground" />
-                Business Name
-              </label>
-              <Input
-                value={formData.businessName}
-                onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                placeholder="Your business name"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm sm:text-base font-medium">Email</label>
+                <div className="relative">
+                  <EnvelopeIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="pl-10 text-sm sm:text-base"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm sm:text-base font-medium">Phone</label>
+                <div className="relative">
+                  <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="tel"
+                    placeholder="(123) 456-7890"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="pl-10 text-sm sm:text-base"
+                    required
+                  />
+                </div>
+              </div>
             </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Contact Name</label>
-              <Input
-                value={formData.contactName}
-                onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                placeholder="Your full name"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm sm:text-base font-medium">Budget</label>
+                <Select
+                  value={formData.budget}
+                  onValueChange={(value) => setFormData({ ...formData, budget: value })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select your budget" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="under-5k">Under $5,000</SelectItem>
+                    <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
+                    <SelectItem value="10k-25k">$10,000 - $25,000</SelectItem>
+                    <SelectItem value="25k-50k">$25,000 - $50,000</SelectItem>
+                    <SelectItem value="50k-plus">$50,000+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm sm:text-base font-medium">Timeline</label>
+                <Select
+                  value={formData.timeline}
+                  onValueChange={(value) => setFormData({ ...formData, timeline: value })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select your timeline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asap">ASAP</SelectItem>
+                    <SelectItem value="1-2-weeks">1-2 weeks</SelectItem>
+                    <SelectItem value="1-month">1 month</SelectItem>
+                    <SelectItem value="2-3-months">2-3 months</SelectItem>
+                    <SelectItem value="3-plus-months">3+ months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-
             <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="your@email.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Phone</label>
-              <Input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="Your phone number"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Website URL</label>
-              <Input
-                type="url"
-                value={formData.websiteUrl}
-                onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-                placeholder="https://your-website.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center">
-                <DollarSign className="w-4 h-4 mr-2 text-muted-foreground" />
-                Budget Range
-              </label>
-              <Select
-                value={formData.budget}
-                onValueChange={(value) => setFormData({ ...formData, budget: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select budget range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="300-1k">$300 - $1,000</SelectItem>
-                  <SelectItem value="1k-2.5k">$1,000 - $2,500</SelectItem>
-                  <SelectItem value="2.5k-5k">$2,500 - $5,000</SelectItem>
-                  <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
-                  <SelectItem value="10k+">$10,000+</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center">
-                <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
-                Implementation Timeline
-              </label>
-              <Select
-                value={formData.timeline}
-                onValueChange={(value) => setFormData({ ...formData, timeline: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select timeline" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asap">As soon as possible</SelectItem>
-                  <SelectItem value="1-month">Within 1 month</SelectItem>
-                  <SelectItem value="3-months">Within 3 months</SelectItem>
-                  <SelectItem value="6-months">Within 6 months</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center">
-                <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                Best Time to Contact
-              </label>
+              <label className="text-sm sm:text-base font-medium">Best Time to Contact</label>
               <Select
                 value={formData.bestTimeToContact}
                 onValueChange={(value) => setFormData({ ...formData, bestTimeToContact: value })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select preferred time" />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select preferred contact time" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="morning">Morning (9am - 12pm)</SelectItem>
-                  <SelectItem value="afternoon">Afternoon (12pm - 4pm)</SelectItem>
-                  <SelectItem value="evening">Evening (4pm - 6pm)</SelectItem>
+                  <SelectItem value="afternoon">Afternoon (12pm - 5pm)</SelectItem>
+                  <SelectItem value="evening">Evening (5pm - 8pm)</SelectItem>
+                  <SelectItem value="flexible">Flexible</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Additional Information</label>
-            <Textarea
-              value={formData.additionalInfo}
-              onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
-              placeholder="Tell us about your specific needs, challenges, or any questions you have..."
-              className="min-h-[100px]"
-            />
-          </div>
-
-          <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
-            <Button variant="outline" onClick={onBack} className="w-full sm:w-auto">
-              Back to Stack Builder
-            </Button>
-            <Button 
-              type="submit"
-              disabled={!formData.businessName || !formData.contactName || !formData.email || isSubmitting}
-              className="w-full sm:w-auto"
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="animate-pulse">Submitting...</span>
-                </>
-              ) : (
-                <>
-                  {showConfirmation ? 'Confirm & Submit' : 'Review Quote Request'}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </div>
-          </form>
-
-          {submitError && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 flex items-center">
-              <AlertCircle className="w-4 h-4 mr-2" />
-              <span className="text-sm">{submitError}</span>
+            <div className="space-y-2">
+              <label className="text-sm sm:text-base font-medium">Additional Information</label>
+              <Textarea
+                placeholder="Tell us more about your needs..."
+                value={formData.additionalInfo}
+                onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
+                className="min-h-[100px] text-sm sm:text-base"
+              />
             </div>
-          )}
-
-          <p className="text-xs text-muted-foreground text-center">
-            Your information is secure and will only be used to process your quote request.
-            A Frayze team member will contact you within 1 business day.
-          </p>
+            <div className="space-y-2">
+              <label className="text-sm sm:text-base font-medium">Website URL (if applicable)</label>
+              <Input
+                type="url"
+                placeholder="https://yourwebsite.com"
+                value={formData.websiteUrl}
+                onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+                className="text-sm sm:text-base"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                type="submit"
+                className="w-full sm:w-auto text-sm sm:text-base"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Submit Quote Request
+                  </>
+                )}
+              </Button>
+              {submitError && (
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-destructive">
+                  <AlertCircle className="w-4 h-4" />
+                  {submitError}
+                </div>
+              )}
+            </div>
+          </form>
         </CardContent>
       </Card>
 
@@ -845,6 +823,6 @@ export function ContactForm({ totalPrice, selected, onSubmit, onBack }: ContactF
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

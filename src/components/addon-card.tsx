@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { type Addon } from "@/types";
 import { cn } from "@/lib/utils";
 import { formatPricing } from "@/lib/format-utils";
+import React from "react";
 
 interface AddonCardProps {
   addon: Addon;
@@ -33,7 +34,7 @@ interface AddonCardProps {
 }
 
 // Function to get appropriate icon based on addon properties
-const getAddonIcon = (addon: Addon) => {
+const getAddonIcon = (addon: Addon): React.ReactNode => {
   // Check by ID first for specific services
   switch (addon.id) {
     case "ai-chat-bot":
@@ -80,7 +81,7 @@ const getAddonIcon = (addon: Addon) => {
   }
 };
 
-export function AddonCard({ addon, isSelected, onToggle, isIncludedInCore = false }: AddonCardProps) {
+export function AddonCard({ addon, isSelected, onToggle, isIncludedInCore = false }: AddonCardProps): React.ReactElement {
   const addonIcon = getAddonIcon(addon);
   
   return (
